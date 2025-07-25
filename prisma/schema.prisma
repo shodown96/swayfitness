@@ -1,0 +1,254 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ACCOUNT MODEL (Single unified model for all users)
+// ============================================================================
+
+model Account {
+  id       String    @id @default(cuid())
+  email    String    @unique
+  password String
+  name     String
+  phone    String?
+  dob      DateTime?
+  gender   Gender?
+  address  String?
+  avatar   String?
+
+  // Role and permissions
+  role        AccountRole   @default(member)
+  status      AccountStatus @default(active)
+  permissions String[]      @default([])
+
+  // Member-specific fields
+  lastVisit DateTime?
+  memberId  String?   @unique // Generated for members only
+
+  // Emergency contact (for members)
+  emergencyContactName         String?
+  emergencyContactPhone        String?
+  emergencyContactRelationship String?
+  medicalConditions            String?
+
+  // Admin-specific fields
+  lastLogin DateTime?
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  subscription Subscription?
+  transactions Transaction[]
+  notes        AccountNote[]
+
+  @@map("accounts")
+}
+
+// ============================================================================
+// MEMBERSHIP PLANS
+// ============================================================================
+
+model Plan {
+  id          String       @id @default(cuid())
+  name        String
+  apiId       String?
+  description String
+  price       Float
+  oldPrice    Float?
+  interval    PlanInterval
+  features    String[]
+  status      PlanStatus   @default(active)
+  category    String?
+  // maxMembers         Int?
+  // trialPeriod        Int?         @default(0) // Days
+  // setupFee           Decimal?     @db.Decimal(10, 2)
+  // cancellationPolicy String?
+
+  // Paystack integration
+  code String? @unique
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+// ============================================================================
+// SUBSCRIPTIONS
+// ============================================================================
+
+model Subscription {
+  id        String  @id @default(cuid())
+  accountId String? @unique
+  planId    String
+
+  // Subscription details
+  status          SubscriptionStatus @default(active)
+  startDate       DateTime
+  endDate         DateTime?
+  nextBillingDate DateTime?
+  renewalCount    Int                @default(0)
+
+  // Paystack integration
+  subscriptionCode String? @unique
+  customerCode     String?
+  emailToken       String?
+  customerId       String?
+
+  // Cancellation
+  cancellationDate   DateTime?
+  cancellationReason String?
+
+  // Pricing
+  amount          Decimal  @db.Decimal(10, 2)
+  discountApplied Decimal? @db.Decimal(10, 2)
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  account      Account?      @relation(fields: [accountId], references: [id])
+  plan         Plan          @relation(fields: [planId], references: [id])
+  transactions Transaction[]
+
+  @@map("subscriptions")
+}
+
+// ============================================================================
+// TRANSACTIONS
+// ============================================================================
+
+model Transaction {
+  id             String  @id @default(cuid())
+  accountId      String
+  subscriptionId String?
+
+  // Transaction details
+  amount      Decimal           @db.Decimal(10, 2)
+  totalAmount Decimal?          @db.Decimal(10, 2)
+  status      TransactionStatus @default(pending)
+  type        TransactionType
+  description String
+
+  // Gateway integration
+  reference String  @unique
+  apiId     String?
+  gateway   String  @default("paystack")
+
+  // Refund details
+  refundReason String?
+  refundDate   DateTime?
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  account      Account       @relation(fields: [accountId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@map("transactions")
+}
+
+// ============================================================================
+// ACCOUNT NOTES (Admin notes on members)
+// ============================================================================
+
+model AccountNote {
+  id        String   @id @default(cuid())
+  accountId String
+  content   String
+  createdBy String // Admin account ID
+  createdAt DateTime @default(now())
+
+  // Relations
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("account_notes")
+}
+
+// ============================================================================
+// SETTINGS
+// ============================================================================
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  type  String @default("string") // string, number, boolean, json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum AccountRole {
+  member
+  admin
+  superadmin
+}
+
+enum AccountStatus {
+  active
+  inactive
+  suspended
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum PlanInterval {
+  monthly
+  annual
+}
+
+enum PlanStatus {
+  active
+  inactive
+}
+
+enum SubscriptionStatus {
+  active
+  expired
+  suspended
+  cancelled
+}
+
+enum TransactionStatus {
+  success
+  failed
+  pending
+  refunded
+}
+
+enum TransactionType {
+  subscription
+  registration
+  refund
+  upgrade
+  downgrade
+}
