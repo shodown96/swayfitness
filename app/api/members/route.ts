@@ -1,9 +1,9 @@
-import { NextRequest } from "next/server"
+import { hashPassword } from "@/lib/bcrypt"
+import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
-import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { AccountRole, AccountStatus, Gender, PlanInterval } from "@prisma/client"
-import { hashPassword } from "@/lib/bcrypt"
+import { NextRequest } from "next/server"
 
 // GET /api/members
 export async function GET(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
           { memberId: { contains: search, mode: "insensitive" } },
         ],
       }),
-      ...(status !== "all" && { status: status.toUpperCase() as AccountStatus }),
+      ...(status !== "all" && { status: status as AccountStatus }),
       ...(planId && planId !== "all" && {
         subscription: { planId },
       }),
@@ -34,11 +34,7 @@ export async function GET(request: NextRequest) {
       prisma.account.findMany({
         where,
         include: {
-          subscription: {
-            include: {
-              plan: true,
-            },
-          },
+          subscription: { include: { plan: true } },
         },
         skip: (page - 1) * limit,
         take: limit,
@@ -59,6 +55,7 @@ export async function GET(request: NextRequest) {
       data: paginated,
     })
   } catch (error) {
+    console.log(error)
     return constructResponse({
       statusCode: 500,
       message: ERROR_MESSAGES.InternalServerError,
@@ -151,8 +148,9 @@ export async function POST(request: NextRequest) {
       data: newMember,
     })
   } catch (error) {
+    console.log(error)
     return constructResponse({
-      statusCode: 400,
+      statusCode: 500,
       message: "Invalid request data",
     })
   }

@@ -16,8 +16,10 @@ export const API_ENDPOINTS = {
   },
   Admins: {
     Base: "/api/admins",
+    SendNotification: "/api/admins/send-notification",
     Invite: "/api/admins/invite",
     Me: "/api/admins/me",
+    Stats: "/api/admins/stats",
     ById: (id: string) => `/api/admins/${id}`,
   },
   Accounts: {
@@ -47,7 +49,6 @@ export const API_ENDPOINTS = {
   },
   Analytics: {
     Dashboard: "/api/analytics/dashboard",
-    Members: "/api/analytics/members",
-    Revenue: "/api/analytics/revenue",
+    Plans: "/api/analytics/plans",
   },
 } as const;

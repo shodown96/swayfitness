@@ -1,13 +1,14 @@
 import { FullAccount } from "@/types/account"
+import { PaginatedData } from "@/types/common"
+import { Account, AccountRole, AccountStatus } from "@prisma/client"
 import { mainClient } from "../axios"
 import { API_ENDPOINTS } from "../constants/api"
-import { AccountRole, AccountStatus } from "@prisma/client"
-import { PaginatedData } from "@/types/common"
+import { InviteAdminParamsType } from "../validations"
 
 export interface AdminFilters {
   search?: string
   role?: string
-  status?: AccountStatus
+  status?: string
   page?: number
   limit?: number
 }
@@ -17,6 +18,12 @@ export interface CreateAdminData {
   email: string
   role: AccountRole,
   status?: AccountStatus
+}
+
+export interface AdminStats {
+  totalAdmins: number,
+  superAdmins: number,
+  activeAdmins: number,
 }
 
 export class AdminsService {
@@ -32,7 +39,7 @@ export class AdminsService {
     return mainClient.post<FullAccount>(API_ENDPOINTS.Admins.Base, adminData)
   }
 
-  static async update(id: string, adminData: Partial<CreateAdminData>) {
+  static async update(id: string, adminData: Partial<Account>) {
     return mainClient.put<FullAccount>(API_ENDPOINTS.Admins.ById(id), adminData)
   }
 
@@ -40,7 +47,11 @@ export class AdminsService {
     return mainClient.delete(API_ENDPOINTS.Admins.ById(id))
   }
 
-  static async invite(email: string, role: string) {
-    return mainClient.post(API_ENDPOINTS.Admins.Invite, { email, role })
+  static async invite(values:InviteAdminParamsType) {
+    return mainClient.post(API_ENDPOINTS.Admins.Invite, values)
+  }
+
+  static async stats() {
+    return mainClient.get<AdminStats>(API_ENDPOINTS.Admins.Stats)
   }
 }

@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    console.log(error)
     return constructResponse({
       statusCode: 500,
       message: ERROR_MESSAGES.InternalServerError,

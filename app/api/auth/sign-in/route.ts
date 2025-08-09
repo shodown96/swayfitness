@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
 
 
     const user = await prisma.account.findUnique({
-      where: { email, role: AccountRole.member }
+      where: { email, role: AccountRole.member },
+      include: { subscription: { include: { plan: true } } }
     })
 
     if (!user) {

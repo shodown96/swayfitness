@@ -6,8 +6,8 @@ import { API_ENDPOINTS } from "../constants/api"
 
 export interface PlanFilters {
   search?: string
-  status?: PlanStatus
-  interval?: PlanInterval
+  status?: string
+  interval?: string
   page?: number
   limit?: number
 }

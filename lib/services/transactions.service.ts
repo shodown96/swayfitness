@@ -1,5 +1,7 @@
-import { AxiosService } from "../ax"
-import type { Transaction } from "../dumps/admin-data"
+import { PaginatedData } from "@/types/common"
+import { FullTransaction } from "@/types/plan"
+import { mainClient } from "../axios"
+import { API_ENDPOINTS } from "../constants/api"
 
 export interface TransactionFilters {
   search?: string
@@ -13,18 +15,18 @@ export interface TransactionFilters {
 
 export class TransactionsService {
   static async getAll(filters?: TransactionFilters) {
-    return AxiosService.get<Transaction[]>("/transactions", { params: filters })
+    return mainClient.get<PaginatedData<FullTransaction>>(API_ENDPOINTS.Transactions.Base, { params: filters })
   }
 
   static async getById(id: string) {
-    return AxiosService.get<Transaction>(`/transactions/${id}`)
+    return mainClient.get<FullTransaction>(API_ENDPOINTS.Transactions.ById(id))
   }
 
   static async refund(id: string, reason?: string) {
-    return AxiosService.post(`/transactions/${id}/refund`, { reason })
+    return mainClient.post(API_ENDPOINTS.Transactions.Refund(id), { reason })
   }
 
   static async getStats() {
-    return AxiosService.get("/transactions/stats")
+    return mainClient.get(API_ENDPOINTS.Transactions.Stats)
   }
 }

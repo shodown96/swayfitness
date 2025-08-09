@@ -38,7 +38,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {rightIcon && <div className="absolute right-3">{rightIcon()}</div>}
         </div>
         {touched && error && (
-          <label className="text-xs text-red-500 absolute mt-[2px]">
+          <label className="text-xs text-red-500 absolute mt-1">
             {error?.message || typeof error === "string" ? error : null}
           </label>
         )}

@@ -1,49 +1,76 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { SendNotificationDialog } from "@/components/admin/send-notification-modal"
 import { Badge } from "@/components/ui/badge"
-import { Users, CreditCard, DollarSign, UserPlus, TrendingUp, Download, Bell, Plus } from 'lucide-react'
-import { dummyMembers, dummyTransactions, formatCurrency } from "@/lib/dumps/admin-data"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/dumps/admin-data"
+import { AnalyticsService, DashboardMetrics } from "@/lib/services/analytics.service"
+import { FullPlan } from "@/types/plan"
+import { Bell, CreditCard, DollarSign, Download, UserPlus, Users } from 'lucide-react'
+import { useEffect, useRef, useState } from "react"
+import { useReactToPrint } from "react-to-print";
+
+const recentActivities = [
+  { id: 1, action: 'New member registration', member: 'John Doe', time: '2 hours ago' },
+  { id: 2, action: 'Payment received', member: 'Jane Smith', time: '4 hours ago' },
+  { id: 3, action: 'Subscription renewed', member: 'Mike Johnson', time: '6 hours ago' },
+  { id: 4, action: 'Plan upgraded', member: 'Sarah Wilson', time: '8 hours ago' },
+  { id: 5, action: 'New member registration', member: 'David Brown', time: '1 day ago' },
+]
 
 export default function AdminDashboardPage() {
-  // Calculate metrics
-  const totalMembers = dummyMembers.length
-  const activeSubscriptions = dummyMembers.filter(m => m.status === 'active').length
-  const monthlyRevenue = dummyTransactions
-    .filter(t => t.status === 'success' && t.date.startsWith('2024-07'))
-    .reduce((sum, t) => sum + t.amount, 0)
-  const newMembersThisMonth = dummyMembers
-    .filter(m => m.joinDate.startsWith('2024-07')).length
+  const [metrics, setMetrics] = useState<DashboardMetrics>()
+  const [plans, setPlans] = useState<FullPlan[]>([])
+  const [openNotificationModal, setOpenNotificationModal] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
-  const recentActivities = [
-    { id: 1, action: 'New member registration', member: 'John Doe', time: '2 hours ago' },
-    { id: 2, action: 'Payment received', member: 'Jane Smith', time: '4 hours ago' },
-    { id: 3, action: 'Subscription renewed', member: 'Mike Johnson', time: '6 hours ago' },
-    { id: 4, action: 'Plan upgraded', member: 'Sarah Wilson', time: '8 hours ago' },
-    { id: 5, action: 'New member registration', member: 'David Brown', time: '1 day ago' },
-  ]
+  const exportPDF = useReactToPrint({
+    contentRef: dashboardRef,
+    documentTitle: "Dashboard Report",
+  });
 
-  const planDistribution = [
-    { name: 'Basic', count: dummyMembers.filter(m => m.plan.name.includes('Basic')).length, color: 'bg-blue-500' },
-    { name: 'Premium', count: dummyMembers.filter(m => m.plan.name.includes('Premium')).length, color: 'bg-green-500' },
-    { name: 'Elite', count: dummyMembers.filter(m => m.plan.name.includes('Elite')).length, color: 'bg-purple-500' },
-  ]
+  const fetchMetrics = async () => {
+    try {
+      const { data } = await AnalyticsService.getDashboardMetrics()
+      if (data) {
+        setMetrics(data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch metrics", err)
+    }
+  }
+
+  const fetchPlan = async () => {
+    try {
+      const { data } = await AnalyticsService.getPlanAnalytics()
+      if (data) {
+        setPlans(data.plans)
+      }
+    } catch (err) {
+      console.error("Failed to fetch metrics", err)
+    }
+  }
+  useEffect(() => {
+    fetchMetrics()
+    fetchPlan()
+  }, [])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={dashboardRef}>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-gray-600 mt-1">Welcome back! Here's what's happening at your gym.</p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportPDF}>
             <Download className="w-4 h-4 mr-2" />
             Export Reports
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setOpenNotificationModal(true)}>
             <Bell className="w-4 h-4 mr-2" />
             Send Announcement
           </Button>
@@ -57,11 +84,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Members</p>
-                <p className="text-3xl font-bold text-gray-800">{totalMembers}</p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-3xl font-bold text-gray-800">{metrics?.totalMembers || 0}</p>
+                {/* <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   +12% from last month
-                </p>
+                </p> */}
               </div>
               <div className="bg-blue-100 p-3 rounded-full">
                 <Users className="w-6 h-6 text-blue-600" />
@@ -75,11 +102,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
-                <p className="text-3xl font-bold text-gray-800">{activeSubscriptions}</p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-3xl font-bold text-gray-800">{metrics?.activeSubscriptions || 0}</p>
+                {/* <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   +8% from last month
-                </p>
+                </p> */}
               </div>
               <div className="bg-green-100 p-3 rounded-full">
                 <CreditCard className="w-6 h-6 text-green-600" />
@@ -93,11 +120,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                <p className="text-3xl font-bold text-gray-800">{formatCurrency(monthlyRevenue)}</p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-3xl font-bold text-gray-800">{formatCurrency(metrics?.monthlyRevenue || 0)}</p>
+                {/* <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   +15% from last month
-                </p>
+                </p> */}
               </div>
               <div className="bg-yellow-100 p-3 rounded-full">
                 <DollarSign className="w-6 h-6 text-yellow-600" />
@@ -111,7 +138,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">New Members</p>
-                <p className="text-3xl font-bold text-gray-800">{newMembersThisMonth}</p>
+                <p className="text-3xl font-bold text-gray-800">{metrics?.newMembersThisMonth || 0}</p>
                 <p className="text-sm text-gray-500 mt-1">This month</p>
               </div>
               <div className="bg-purple-100 p-3 rounded-full">
@@ -124,34 +151,35 @@ export default function AdminDashboardPage() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Plan Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Plan Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {planDistribution.map((plan) => (
-                <div key={plan.name} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full ${plan.color}`} />
-                    <span className="font-medium">{plan.name}</span>
+        {metrics ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Plan Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {plans.map((plan) => (
+                  <div key={plan.name} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-medium">{plan.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-gray-600">{plan._count.subscriptions} members</span>
+                      <Badge variant="secondary">
+                        {Math.round((plan._count.subscriptions / metrics.activeSubscriptions) * 100)}%
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600">{plan.count} members</span>
-                    <Badge variant="secondary">
-                      {Math.round((plan.count / totalMembers) * 100)}%
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Recent Activity (TODO)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -168,29 +196,9 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button className="h-20 flex flex-col items-center justify-center space-y-2">
-              <Plus className="w-6 h-6" />
-              <span>Add New Member</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2">
-              <Download className="w-6 h-6" />
-              <span>Export Reports</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2">
-              <Bell className="w-6 h-6" />
-              <span>Send Announcement</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SendNotificationDialog
+        open={openNotificationModal}
+        setOpen={setOpenNotificationModal} />
     </div>
   )
 }

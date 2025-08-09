@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const [totalMembers, activeMembers, transactions, newMembers] = await Promise.all([
+  const [totalMembers, activeMembers, transactions, newMembers, activeSubscriptions] = await Promise.all([
     prisma.account.count({ where: { role: AccountRole.member } }),
     prisma.account.count({ where: { role: AccountRole.member, status: AccountStatus.active } }),
     prisma.transaction.findMany({}),
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         },
       },
     }),
+    prisma.subscription.count({ where: { status: 'active' } })
   ])
 
   const totalRevenue = transactions.reduce((sum, txn) => sum + Number(txn.amount), 0)
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
       memberGrowthRate,
       revenueGrowthRate,
       averageRevenuePerMember,
+      activeSubscriptions,
     },
   })
 }

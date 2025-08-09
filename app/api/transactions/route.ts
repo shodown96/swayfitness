@@ -1,41 +1,48 @@
-import { prisma } from "@/lib/prisma"
-import { constructResponse } from "@/lib/response"
-import { type NextRequest } from "next/server"
+import { ERROR_MESSAGES } from "@/lib/constants/messages";
+import { prisma } from "@/lib/prisma";
+import { constructResponse, paginateItems } from "@/lib/response";
+import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const [
-    totalTransactions,
-    successfulTransactions,
-    failedTransactions,
-    pendingTransactions,
-    refundedTransactions,
-    totalRevenueData,
-  ] = await Promise.all([
-    prisma.transaction.count(),
-    prisma.transaction.count({ where: { status: "success" } }),
-    prisma.transaction.count({ where: { status: "failed" } }),
-    prisma.transaction.count({ where: { status: "pending" } }),
-    prisma.transaction.count({ where: { status: "refunded" } }),
-    prisma.transaction.aggregate({
-      _sum: { amount: true },
-      where: {
-        status: "success",
-        type: { not: "refund" },
-      },
-    }),
-  ])
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "all";
+  const type = searchParams.get("type") || "all";
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
 
-  const totalRevenue = totalRevenueData._sum.amount || 0
+  const where: any = {
+    ...(status !== "all" && { status }),
+    ...(type !== "all" && { type }),
+    ...(search && {
+      OR: [
+        { account: { name: { contains: search, mode: "insensitive" } } },
+        { description: { contains: search, mode: "insensitive" } },
+        { reference: { contains: search, mode: "insensitive" } },
+      ],
+    }),
+  };
+
+  const [total, transactions] = await Promise.all([
+    prisma.transaction.count({ where }),
+    prisma.transaction.findMany({
+      where,
+      include: {
+        account: true,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   return constructResponse({
     statusCode: 200,
-    data: {
-      totalTransactions,
-      successfulTransactions,
-      failedTransactions,
-      pendingTransactions,
-      refundedTransactions,
-      totalRevenue,
-    },
-  })
+    data: paginateItems({
+      page,
+      pageSize: limit,
+      items: transactions,
+      total,
+    }),
+  });
 }

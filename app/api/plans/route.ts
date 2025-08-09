@@ -1,9 +1,8 @@
-import { type NextRequest } from "next/server"
+import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
-import { ERROR_MESSAGES } from "@/lib/constants/messages"
-import { checkAuth } from "@/actions/auth/check-auth"
 import { PlanStatus } from "@prisma/client"
+import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
 

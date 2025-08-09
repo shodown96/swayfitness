@@ -1,9 +1,17 @@
-import { NextRequest } from "next/server"
+import { checkAuth } from "@/actions/auth/check-auth"
+import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
-import { ERROR_MESSAGES } from "@/lib/constants/messages"
-import { AccountRole } from "@prisma/client"
 import { APIRouteIDParams } from "@/types/common"
+import { AccountRole, AccountStatus } from "@prisma/client"
+import { NextRequest } from "next/server"
+
+const allowedStatuses: AccountStatus[] = [
+  AccountStatus.active,
+  AccountStatus.inactive,
+  AccountStatus.suspended,
+]
+
 
 // GET /api/members/[id]
 export async function GET(
@@ -44,8 +52,18 @@ export async function PUT(
   { params }: APIRouteIDParams
 ) {
   try {
+    const { user } = await checkAuth(true)
     const body = await request.json()
-    const { name, email, phone, dob, gender } = body
+    const { name,
+      email,
+      phone,
+      dob,
+      gender,
+      status,
+      emergencyContactName,
+      emergencyContactPhone,
+      emergencyContactRelationship
+    } = body
 
     const existingMember = await prisma.account.findUnique({
       where: { id: (await params).id },
@@ -75,6 +93,14 @@ export async function PUT(
       }
     }
 
+    // check for correct status
+    if (status && !allowedStatuses.includes(status)) {
+      return constructResponse({
+        statusCode: 400,
+        message: "Invalid status provided",
+      })
+    }
+
     const updatedMember = await prisma.account.update({
       where: { id: (await params).id },
       data: {
@@ -83,13 +109,17 @@ export async function PUT(
         ...(phone && { phone }),
         ...(dob && { dob: new Date(dob) }),
         ...(gender && { gender }),
+        ...(status && { status }),
+        ...(emergencyContactName && { emergencyContactName }),
+        ...(emergencyContactPhone && { emergencyContactPhone }),
+        ...(emergencyContactRelationship && { emergencyContactRelationship }),
       },
     })
 
     return constructResponse({
       statusCode: 200,
       message: "Member updated successfully",
-      data: updatedMember,
+      data: { member: updatedMember },
     })
   } catch (error) {
     return constructResponse({
@@ -105,6 +135,7 @@ export async function DELETE(
   { params }: APIRouteIDParams
 ) {
   try {
+    const { user } = await checkAuth()
     const existingMember = await prisma.account.findUnique({
       where: { id: (await params).id },
     })

@@ -1,3 +1,5 @@
+import { generateRandomPassword } from "@/lib/auth"
+import { hashPassword } from "@/lib/bcrypt"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
@@ -6,9 +8,14 @@ import { NextRequest } from "next/server"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, role } = body
+    const {
+      name,
+      phone,
+      email,
+      role
+    } = body
 
-    if (!email || !role) {
+    if (!email || !role || !name || !phone) {
       return constructResponse({
         statusCode: 400,
         message: "Missing required fields",
@@ -27,9 +34,20 @@ export async function POST(request: NextRequest) {
         message: "User with this email already exists",
       })
     }
+    const password = generateRandomPassword()
+    const hashedPassword = await hashPassword(password)
 
-    // TODO: Optionally save invite token, expiration, etc.
-    // Simulate invitation email sending
+    const created = await prisma.account.create({
+      data: {
+        name,
+        email,
+        phone,
+        role,
+        password: hashedPassword
+      }
+    })
+    
+    // TODO: invitation email sending
     // await sendInviteEmail({ email: lowerEmail, role })
 
     return constructResponse({

@@ -4,8 +4,6 @@ import { constructResponse, paginateItems } from "@/lib/response"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 
 export async function GET(request: NextRequest) {
-  await new Promise((resolve) => setTimeout(resolve, 400))
-
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("search") || ""
   const status = searchParams.get("status") || "all"

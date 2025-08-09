@@ -40,9 +40,12 @@ export default function DashboardPage() {
       const img = new Image()
 
       img.onload = () => {
-        canvas.width = img.width
-        canvas.height = img.height
-        ctx?.drawImage(img, 0, 0)
+        const qrSize = 1024
+        const padding = 50
+        const canvasSize = qrSize + padding * 2
+        canvas.width = canvasSize
+        canvas.height = canvasSize
+        ctx?.drawImage(img, padding, padding, qrSize, qrSize)
 
         const pngFile = canvas.toDataURL('image/png')
         const downloadLink = document.createElement('a')
@@ -181,7 +184,7 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-xl font-bold">{user.name}</h3>
-                      <p className="text-orange-100">{user.id}</p>
+                      <p className="text-orange-100">{user.memberId}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-orange-100">SwayFitness</p>
@@ -247,7 +250,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="flex items-center space-x-4 mb-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage  />
+                  <AvatarImage />
                   <AvatarFallback className="bg-orange-500 text-white text-xl">
                     {user.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

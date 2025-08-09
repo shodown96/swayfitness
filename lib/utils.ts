@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { differenceInCalendarDays, isSameDay, parseISO } from "date-fns"
 import { twMerge } from "tailwind-merge"
+import { APP_SEARCH_RATE } from "./constants/app"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,7 +35,27 @@ export function isToday(dateString: string): boolean {
 }
 
 export function daysUntilNextBilling(nextBillingDate: string | Date): number {
-  const targetDate = typeof nextBillingDate === "string" ? parseISO(nextBillingDate) : nextBillingDate
+  // const targetDate = typeof nextBillingDate === "string" ? parseISO(nextBillingDate) : nextBillingDate
+  // const today = new Date()
+  // return differenceInCalendarDays(targetDate, today)
+  const target = new Date(nextBillingDate)
+  console.log(target)
   const today = new Date()
-  return differenceInCalendarDays(targetDate, today)
+
+  // Normalize both dates to midnight (ignore time)
+  target.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+
+  const msPerDay = 1000 * 60 * 60 * 24
+  const diffInMs = target.getTime() - today.getTime()
+  const diffInDays = Math.floor(diffInMs / msPerDay)
+  return diffInDays
 }
+
+export const delayDebounceFn = (callBack: () => void) =>
+  setTimeout(callBack, APP_SEARCH_RATE);
+
+export const generateRandomPassword = (length = 12) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+[]{}|;:,.<>?';
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};

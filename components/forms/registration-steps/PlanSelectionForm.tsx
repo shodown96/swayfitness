@@ -22,12 +22,12 @@ interface PlanSelectionFormProps {
 
 export default function PlanSelectionForm({ formik, onPrev }: PlanSelectionFormProps) {
   const { values, errors, touched, handleChange, handleBlur, setFieldValue, handleSubmit, isSubmitting } = formik
-  const {selectedPlan, selectPlan, plans, setPlans} = usePlanStore()
+  const {selectedPlan, setSelectedPlan, plans, setPlans} = usePlanStore()
 
   useEffect(() => {
     const plan = plans.find(v=>v.id===values.planId)
     if (values.planId && plan) {
-      selectPlan(plan)
+      setSelectedPlan(plan)
     }
   }, [values.planId])
   
@@ -67,7 +67,7 @@ export default function PlanSelectionForm({ formik, onPrev }: PlanSelectionFormP
         value={values.planId}
         onChange={(value) => {
           setFieldValue("planId", value)
-          selectPlan(plans.find(v=>v.id===value) || null)
+          setSelectedPlan(plans.find(v=>v.id===value) || null)
         }}
         onBlur={handleBlur}
         options={planOptions}

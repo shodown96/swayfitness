@@ -1,13 +1,12 @@
 "use client"
 
+import EditAdminModal from "@/components/admin/edit-admin-modal"
+import InviteAdminModal from "@/components/admin/invite-admin-modal"
+import TableSkeleton from "@/components/custom/TableSkeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -16,78 +15,87 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import useAPIQuery from "@/hooks/use-api-query"
 import { AdminsService } from "@/lib/services/admins.service"
+import { useAdminStore } from "@/lib/stores/adminStore"
+import { useAuthStore } from "@/lib/stores/authStore"
+import { delayDebounceFn } from "@/lib/utils"
 import { FullAccount } from "@/types/account"
-import { AccountRole, AccountStatus } from "@prisma/client"
-import { Edit, Mail, Shield, UserPlus, UserX } from 'lucide-react'
+import { AccountRole } from "@prisma/client"
+import { ChevronLeft, ChevronRight, Edit, Shield, UserPlus } from 'lucide-react'
 import { useEffect, useState } from "react"
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<FullAccount[]>([])
-  const [isInviteOpen, setIsInviteOpen] = useState(false)
-  const [selectedAdmin, setSelectedAdmin] = useState<FullAccount | null>(null)
-  const [inviteForm, setInviteForm] = useState({
-    name: "",
-    email: "",
-    role: "Admin" as "Super Admin" | "Admin"
+  const [refreshing, setRefreshing] = useState(false)
+  const [fetching, setFetching] = useState(false)
+  const { setQuery, query, pagination, setPagination } = useAPIQuery()
+  const [stats, setStats] = useState({
+    totalAdmins: 0,
+    superAdmins: 0,
+    activeAdmins: 0,
   })
+  const { setSelectedAccount, openInviteModalOpen, openEditAdminModalOpen } = useAdminStore()
 
-  const handleInviteAdmin = async () => {
-    try {
-      await AdminsService.invite(inviteForm.email, inviteForm.role)
-      setInviteForm({ name: "", email: "", role: "Admin" })
-      setIsInviteOpen(false)
-      alert(`Invitation sent to ${inviteForm.email}`)
-
-      const { data } = await AdminsService.getAll()
-      if (data) {
-        setAdmins(data?.items)
-      }
-    } catch (err) {
-      alert("Failed to invite admin")
-      console.error(err)
+  const onActionComplete = async () => {
+    const { data } = await AdminsService.getAll()
+    if (data) {
+      setAdmins(data.items)
     }
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    setQuery({
+      page: 1,
+      search: "",
+      status: undefined,
+      plan: undefined
+    });
+    await fetchData()
+    setRefreshing(false)
+  };
 
-  const handleAdminAction = async (action: string, admin: FullAccount) => {
+
+  const fetchData = async () => {
+    if (!refreshing) setFetching(true)
     try {
-      if (action === "deactivate") {
-        if (confirm(`Deactivate ${admin.name}?`)) {
-          await AdminsService.update(admin.id, { status: AccountStatus.inactive })
-        }
-      } else if (action === "delete") {
-        if (confirm(`Delete ${admin.name}?`)) {
-          await AdminsService.delete(admin.id)
-        }
-      } else if (action === "edit") {
-        setSelectedAdmin(admin)
-        return
-      }
-
-      // Refresh list after any change
-      const { data } = await AdminsService.getAll()
+      const { data } = await AdminsService.getAll(query)
       if (data) {
-        setAdmins(data?.items)
+        setAdmins(data.items)
+        setPagination(data)
       }
     } catch (err) {
-      console.error(err)
-      alert("Failed to process action.")
+      console.error("Failed to fetch admins", err)
+    } finally {
+      setFetching(false)
     }
   }
-
-
-  const currentAdmin = JSON.parse(localStorage.getItem('gym_admin') || '{}')
-  const canManageAdmins = currentAdmin.role === 'Super Admin'
+  const fetchStats = async () => {
+    try {
+      const { data } = await AdminsService.stats()
+      if (data) {
+        setStats(data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch stats", err)
+    } finally {
+      setFetching(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchAdmins = async () => {
-      const { data } = await AdminsService.getAll()
-      if (data) {
-        setAdmins(data?.items)
-      }
+    if (refreshing) return;
+    if (query.search?.length) {
+      const delayDebounce = delayDebounceFn(fetchData);
+      return () => clearTimeout(delayDebounce);
+    } else {
+      fetchData()
     }
-    fetchAdmins()
+  }, [query])
+
+  useEffect(() => {
+    fetchStats()
   }, [])
 
   return (
@@ -98,63 +106,13 @@ export default function AdminsPage() {
           <h1 className="text-3xl font-bold text-gray-800">Admin Management</h1>
           <p className="text-gray-600 mt-1">Manage administrator accounts and permissions</p>
         </div>
-        {canManageAdmins && (
-          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Admin
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite New Administrator</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={inviteForm.name}
-                    onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
-                    placeholder="Enter full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={inviteForm.email}
-                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                    placeholder="Enter email address"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={inviteForm.role} onValueChange={(value: "Super Admin" | "Admin") => setInviteForm({ ...inviteForm, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Super Admin">Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end space-x-3">
-                  <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleInviteAdmin}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Send Invitation
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={openInviteModalOpen}>
+          <UserPlus className="w-4 h-4 mr-2" />
+          Invite Admin
+        </Button>
+        <Button onClick={handleRefresh} variant={'secondary'} disabled={refreshing}>
+          Refresh admins
+        </Button>
       </div>
 
       {/* Admin Stats */}
@@ -164,7 +122,7 @@ export default function AdminsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Admins</p>
-                <p className="text-3xl font-bold text-gray-800">{admins.length}</p>
+                <p className="text-3xl font-bold text-gray-800">{stats.totalAdmins}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-full">
                 <Shield className="w-6 h-6 text-blue-600" />
@@ -179,7 +137,7 @@ export default function AdminsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Super Admins</p>
                 <p className="text-3xl font-bold text-gray-800">
-                  {admins.filter(a => a.role === AccountRole.superadmin).length}
+                  {stats.superAdmins}
                 </p>
               </div>
               <div className="bg-purple-100 p-3 rounded-full">
@@ -195,7 +153,7 @@ export default function AdminsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Admins</p>
                 <p className="text-3xl font-bold text-gray-800">
-                  {admins.filter(a => a.status === 'active').length}
+                  {stats.activeAdmins}
                 </p>
               </div>
               <div className="bg-green-100 p-3 rounded-full">
@@ -217,68 +175,98 @@ export default function AdminsPage() {
               <TableRow>
                 <TableHead>Administrator</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
-                {canManageAdmins && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {admins.map((admin) => (
-                <TableRow key={admin.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage />
-                        <AvatarFallback className="bg-blue-600 text-white">
-                          {admin.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{admin.name}</p>
-                        <p className="text-sm text-gray-500">{admin.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={admin.role === AccountRole.superadmin ? '!bg-purple-100 !text-purple-800' : '!bg-blue-100 !text-blue-800'}>
-                      {admin.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {admin.lastLogin ? new Date(admin.lastLogin).toLocaleDateString() : 'Never'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={admin.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                      {admin.status.charAt(0).toUpperCase() + admin.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{new Date(admin.createdAt).toLocaleDateString()}</TableCell>
-                  {canManageAdmins && (
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAdminAction('edit', admin)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAdminAction('deactivate', admin)}
-                          disabled={admin.id === currentAdmin.id}
-                        >
-                          <UserX className="w-4 h-4" />
-                        </Button>
-                      </div>
+              <TableSkeleton
+                loading={fetching || refreshing}
+                rows={admins.length || 1}
+                columns={6}>
+                {admins.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      No admins found
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
+                  </TableRow>
+                ) : (
+                  admins.map((admin) => (
+                    <TableRow key={admin.id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage />
+                            <AvatarFallback className="bg-blue-600 text-white">
+                              {admin.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{admin.name}</p>
+                            <p className="text-sm text-gray-500">{admin.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={admin.role === AccountRole.superadmin ? '!bg-purple-100 !text-purple-800' : '!bg-blue-100 !text-blue-800'}>
+                          {admin.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {admin.phone || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {admin.lastLogin ? new Date(admin.lastLogin).toLocaleDateString() : 'Never'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={admin.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {admin.status.charAt(0).toUpperCase() + admin.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(admin.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditAdminModalOpen(admin)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )))}
+              </TableSkeleton>
             </TableBody>
-          </Table>
+          </Table>{/* Pagination */}
+          <div className="flex items-center justify-end mt-6">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery({ page: Math.max(pagination.currentPage - 1, 1) })}
+                disabled={pagination.currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              <span className="text-sm text-gray-600">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery({ page: Math.min(pagination.currentPage + 1, pagination.totalPages) })}
+                disabled={pagination.currentPage === pagination.totalPages}
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -334,6 +322,8 @@ export default function AdminsPage() {
           </div>
         </CardContent>
       </Card>
+      <InviteAdminModal onActionComplete={onActionComplete} />
+      <EditAdminModal onActionComplete={onActionComplete} />
     </div>
   )
 }

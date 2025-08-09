@@ -25,7 +25,7 @@ export default function JoinPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const { setUser } = useAuthStore()
-  const { plans, setPlans, selectPlan, selectedPlan } = usePlanStore()
+  const { plans, setPlans, setSelectedPlan, selectedPlan } = usePlanStore()
 
   useEffect(() => {
     const getplans = async () => {

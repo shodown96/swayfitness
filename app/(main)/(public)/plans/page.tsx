@@ -10,7 +10,7 @@ import Link from "next/link"
 import { useEffect } from "react"
 
 export default function PlansPage() {
-  const { plans, setPlans, selectPlan, selectedPlan } = usePlanStore()
+  const { plans, setPlans, setSelectedPlan, selectedPlan } = usePlanStore()
 
   useEffect(() => {
     const getplans = async () => {

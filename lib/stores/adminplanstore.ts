@@ -10,7 +10,7 @@ interface PlanState {
   addPlan: (plan: Plan) => void
   updatePlan: (id: string, plan: Partial<Plan>) => void
   deletePlan: (id: string) => void
-  selectPlan: (plan: Plan | null) => void
+  setSelectedPlan: (plan: Plan | null) => void
 }
 
 export const usePlanStore = create<PlanState>()(
@@ -28,7 +28,7 @@ export const usePlanStore = create<PlanState>()(
         set((state) => ({
           plans: state.plans.filter((plan) => plan.id !== id),
         })),
-      selectPlan: (plan) => set({ selectedPlan: plan }),
+      setSelectedPlan: (plan) => set({ selectedPlan: plan }),
     }),
     {
       name: "plan-storage",

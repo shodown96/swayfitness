@@ -1,4 +1,7 @@
-import { AxiosService } from "../ax"
+import { PaginatedData } from "@/types/common"
+import { FullSubscription } from "@/types/plan"
+import { mainClient } from "../axios"
+import { API_ENDPOINTS } from "../constants/api"
 
 export interface Subscription {
   id: string
@@ -22,36 +25,43 @@ export interface SubscriptionFilters {
   limit?: number
 }
 
+export interface SubscriptionStats {
+    activeSubscriptions: number,
+    expiredSubscriptions: number,
+    suspendedSubscriptions: number,
+    totalRevenue: number,
+}
+
 export class SubscriptionsService {
   static async getAll(filters?: SubscriptionFilters) {
-    return AxiosService.get<Subscription[]>("/subscriptions", { params: filters })
+    return mainClient.get<PaginatedData<FullSubscription>>(API_ENDPOINTS.Subscriptions.Base, { params: filters })
   }
 
   static async getById(id: string) {
-    return AxiosService.get<Subscription>(`/subscriptions/${id}`)
+    return mainClient.get<Subscription>(API_ENDPOINTS.Subscriptions.ById(id))
   }
 
   static async create(subscriptionData: any) {
-    return AxiosService.post<Subscription>("/subscriptions", subscriptionData)
+    return mainClient.post<Subscription>(API_ENDPOINTS.Subscriptions.Base, subscriptionData)
   }
 
   static async update(id: string, subscriptionData: any) {
-    return AxiosService.put<Subscription>(`/subscriptions/${id}`, subscriptionData)
+    return mainClient.put<Subscription>(API_ENDPOINTS.Subscriptions.ById(id), subscriptionData)
   }
 
   static async cancel(id: string) {
-    return AxiosService.delete(`/subscriptions/${id}`)
+    return mainClient.delete(API_ENDPOINTS.Subscriptions.ById(id))
   }
 
   static async suspend(id: string) {
-    return AxiosService.post(`/subscriptions/${id}/suspend`)
+    return mainClient.post(API_ENDPOINTS.Subscriptions.Suspend(id))
   }
 
   static async resume(id: string) {
-    return AxiosService.post(`/subscriptions/${id}/resume`)
+    return mainClient.post(API_ENDPOINTS.Subscriptions.Resume(id))
   }
 
   static async getStats() {
-    return AxiosService.get("/subscriptions/stats")
+    return mainClient.get<SubscriptionStats>(API_ENDPOINTS.Subscriptions.Stats)
   }
 }

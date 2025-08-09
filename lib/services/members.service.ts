@@ -2,10 +2,11 @@ import { FullAccount } from "@/types/account"
 import { PaginatedData } from "@/types/common"
 import { mainClient } from "../axios"
 import { API_ENDPOINTS } from "../constants/api"
+import { Account } from "@prisma/client"
 
 export interface MemberFilters {
   search?: string
-  status?: "active" | "expired" | "suspended"
+  status?: string
   plan?: string
   page?: number
   limit?: number
@@ -15,7 +16,7 @@ export interface CreateMemberData {
   name: string
   email: string
   phone: string
-  dob: string
+  dob: string | Date
   gender: string
   planId: string
 }
@@ -33,16 +34,16 @@ export class MembersService {
     return mainClient.post<FullAccount>(API_ENDPOINTS.Members.Base, memberData)
   }
 
-  static async update(id: string, memberData: Partial<CreateMemberData>) {
+  static async update(memberData: Partial<CreateMemberData>) {
+    return mainClient.put<FullAccount>(API_ENDPOINTS.Members.Me, memberData)
+  }
+
+  static async updateByAdmin(id: string, memberData: Partial<Omit<Account, 'dob'>> & { dob?: any }) {
     return mainClient.put<FullAccount>(API_ENDPOINTS.Members.ById(id), memberData)
   }
 
   static async delete(id: string) {
     return mainClient.delete(API_ENDPOINTS.Members.ById(id))
-  }
-
-  static async updateStatus(id: string, status: "active" | "expired" | "suspended") {
-    return mainClient.patch<FullAccount>(API_ENDPOINTS.Members.Status(id), { status })
   }
 
   static async getStats() {

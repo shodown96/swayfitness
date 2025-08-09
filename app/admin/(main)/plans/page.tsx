@@ -1,16 +1,12 @@
 "use client"
 
+import CreatePlanModal from "@/components/admin/create-plan-modal"
+import EditPlanModal from "@/components/admin/edit-plan-form"
+import DeletePlanModal from "@/components/admin/delete-plan-modal"
+import TableSkeleton from "@/components/custom/TableSkeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,257 +15,155 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { PlansService, type CreatePlanData } from "@/lib/services/plans.service"
-import { formatCurrency } from "@/lib/utils"
+import useAPIQuery from "@/hooks/use-api-query"
+import { PlansService } from "@/lib/services/plans.service"
+import { usePlanStore } from "@/lib/stores/planStore"
+import { delayDebounceFn, formatCurrency } from "@/lib/utils"
 import { FullPlan } from "@/types/plan"
-import { Plan, PlanInterval, PlanStatus } from "@prisma/client"
-import { Copy, Edit, MoreHorizontal, Plus, Power, Search, Trash2 } from "lucide-react"
+import { PlanStatus } from "@prisma/client"
+import { Copy, Edit, MoreHorizontal, Plus, Power, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
 
-export default function PlansPage() {
+export default function NewPlansPage() {
   const [plans, setPlans] = useState<FullPlan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [intervalFilter, setIntervalFilter] = useState<string>("all")
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<FullPlan | null>(null)
-  const [formData, setFormData] = useState<CreatePlanData>({
-    name: "",
-    description: "",
-    price: 0,
-    interval: PlanInterval.monthly,
-    features: [""],
-    status: "active",
-  })
+  const [refreshing, setRefreshing] = useState(false)
+  const [fetching, setFetching] = useState(false)
+  const { setQuery, query, pagination, setPagination } = useAPIQuery()
   const [stats, setStats] = useState({
     totalPlans: 0,
     activePlans: 0,
     totalMembers: 0,
     averagePrice: 0,
   })
-  const { toast } = useToast()
+  const {
+    openCreateModalOpen,
+    openEditModalOpen,
+    openDeleteModalOpen
+  } = usePlanStore()
 
-  useEffect(() => {
-    fetchPlans()
-    fetchStats()
-  }, [])
+  const onActionComplete = async () => {
+    const { data } = await PlansService.getAllForAdmin(query)
+    if (data) {
+      setPlans(data.items)
+    }
+    await fetchStats()
+  }
 
-  const fetchPlans = async () => {
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    setQuery({
+      page: 1,
+      search: "",
+      status: undefined,
+      interval: undefined
+    })
+    await fetchData()
+    setRefreshing(false)
+  }
+
+  const fetchData = async () => {
+    if (!refreshing) setFetching(true)
     try {
-      setLoading(true)
-      const response = await PlansService.getAllForAdmin({
-        search: searchTerm,
-        status: statusFilter === "all" ? undefined : (statusFilter as any),
-        interval: intervalFilter === "all" ? undefined : (intervalFilter as any),
-      })
-      if (response.success && response.data) {
-        setPlans(response.data.items)
+      const { data } = await PlansService.getAllForAdmin(query)
+      if (data) {
+        setPlans(data.items)
+        setPagination(data)
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch plans",
-        variant: "destructive",
-      })
+    } catch (err) {
+      console.error("Failed to fetch plans", err)
     } finally {
-      setLoading(false)
+      setFetching(false)
     }
   }
 
   const fetchStats = async () => {
     try {
-      const response = await PlansService.getStats()
-      if (response.success && response.data) {
-        setStats(response.data as any)
+      const { data } = await PlansService.getStats()
+      if (data) {
+        setStats(data)
       }
-    } catch (error) {
-      console.error("Failed to fetch stats:", error)
+    } catch (err) {
+      console.error("Failed to fetch stats", err)
     }
   }
 
-  const handleCreatePlan = async () => {
+  const handleSearchChange = (value: string) => {
+    setQuery({ search: value, page: 1 })
+  }
+
+  const handleStatusFilter = (value: string) => {
+    setQuery({ status: value === "all" ? undefined : value, page: 1 })
+  }
+
+  const handleIntervalFilter = (value: string) => {
+    setQuery({ interval: value === "all" ? undefined : value, page: 1 })
+  }
+
+  const handleToggleStatus = async (plan: FullPlan) => {
     try {
-      const response = await PlansService.create(formData)
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Plan created successfully",
-        })
-        setIsCreateModalOpen(false)
-        resetForm()
-        fetchPlans()
-        fetchStats()
+      const { success } = await PlansService.toggleStatus(plan.id)
+      if (success) {
+        await fetchData()
+        await fetchStats()
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create plan",
-        variant: "destructive",
-      })
+    } catch (err) {
+      console.error("Failed to toggle plan status", err)
     }
   }
 
-  const handleEditPlan = async () => {
-    if (!selectedPlan) return
+  const handleDuplicatePlan = async (plan: FullPlan) => {
     try {
-      const response = await PlansService.update(selectedPlan.id, formData)
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Plan updated successfully",
-        })
-        setIsEditModalOpen(false)
-        resetForm()
-        fetchPlans()
+      const { success } = await PlansService.duplicate(plan.id)
+      if (success) {
+        await fetchData()
+        await fetchStats()
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update plan",
-        variant: "destructive",
-      })
+    } catch (err) {
+      console.error("Failed to duplicate plan", err)
     }
-  }
-
-  const handleDeletePlan = async () => {
-    if (!selectedPlan) return
-    try {
-      const response = await PlansService.delete(selectedPlan.id)
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Plan deleted successfully",
-        })
-        setIsDeleteModalOpen(false)
-        setSelectedPlan(null)
-        fetchPlans()
-        fetchStats()
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete plan",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleToggleStatus = async (plan: Plan) => {
-    try {
-      const response = await PlansService.toggleStatus(plan.id)
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: `Plan ${PlanStatus.active ? "deactivated" : "activated"} successfully`,
-        })
-        fetchPlans()
-        fetchStats()
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update plan status",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleDuplicatePlan = async (plan: Plan) => {
-    try {
-      const response = await PlansService.duplicate(plan.id)
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Plan duplicated successfully",
-        })
-        fetchPlans()
-        fetchStats()
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to duplicate plan",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      price: 0,
-      interval: "monthly",
-      features: [""],
-      status: "active",
-    })
-    setSelectedPlan(null)
   }
 
   const openEditModal = (plan: FullPlan) => {
-    setSelectedPlan(plan)
-    setFormData({
-      name: plan.name,
-      description: plan.description,
-      price: Number(plan.price),
-      interval: plan.interval,
-      features: [...plan.features],
-      status: plan.status,
-    })
-    setIsEditModalOpen(true)
+    openEditModalOpen(plan)
   }
 
-  const addFeature = () => {
-    setFormData((prev) => ({
-      ...prev,
-      features: [...prev.features, ""],
-    }))
+  const openDeleteModal = (plan: FullPlan) => {
+    openDeleteModalOpen(plan)
   }
 
-  const removeFeature = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: prev.features.filter((_, i) => i !== index),
-    }))
-  }
+  useEffect(() => {
+    if (refreshing) return
+    if (query.search?.length) {
+      const delayDebounce = delayDebounceFn(fetchData)
+      return () => clearTimeout(delayDebounce)
+    } else {
+      fetchData()
+    }
+  }, [query])
 
-  const updateFeature = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: prev.features.map((feature, i) => (i === index ? value : feature)),
-    }))
-  }
-
-  const filteredPlans = plans.filter((plan) => {
-    const matchesSearch =
-      plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      plan.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || plan.status === statusFilter
-    const matchesInterval = intervalFilter === "all" || plan.interval === intervalFilter
-    return matchesSearch && matchesStatus && matchesInterval
-  })
+  useEffect(() => {
+    fetchStats()
+  }, [])
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Membership Plans</h1>
-          <p className="text-gray-600">Manage your gym membership plans and pricing</p>
+          <h1 className="text-3xl font-bold text-gray-900">Plan Management</h1>
+          <p className="text-gray-600 mt-1">Manage your gym membership plans and pricing</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Plan
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button onClick={openCreateModalOpen}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Plan
+          </Button>
+          <Button onClick={handleRefresh} variant={'secondary'} disabled={refreshing}>
+            Refresh plans
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -279,7 +173,7 @@ export default function PlansPage() {
             <CardTitle className="text-sm font-medium">Total Plans</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPlans}</div>
+            <div className="text-2xl font-bold text-gray-800">{stats.totalPlans}</div>
           </CardContent>
         </Card>
         <Card>
@@ -287,7 +181,7 @@ export default function PlansPage() {
             <CardTitle className="text-sm font-medium">Active Plans</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activePlans}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.activePlans}</div>
           </CardContent>
         </Card>
         <Card>
@@ -295,7 +189,7 @@ export default function PlansPage() {
             <CardTitle className="text-sm font-medium">Total Members</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalMembers}</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.totalMembers}</div>
           </CardContent>
         </Card>
         <Card>
@@ -303,29 +197,25 @@ export default function PlansPage() {
             <CardTitle className="text-sm font-medium">Average Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.averagePrice)}</div>
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(stats.averagePrice)}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle>Plans</CardTitle>
-          <CardDescription>A list of all membership plans</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search plans..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={query.search || ""}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={query.status || "all"} onValueChange={handleStatusFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -335,7 +225,7 @@ export default function PlansPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={intervalFilter} onValueChange={setIntervalFilter}>
+            <Select value={query.interval || "all"} onValueChange={handleIntervalFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by interval" />
               </SelectTrigger>
@@ -346,8 +236,16 @@ export default function PlansPage() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Plans Table */}
+      {/* Plans Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Membership Plans ({pagination.total || 0})</CardTitle>
+          <CardDescription>A list of all membership plans</CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -362,343 +260,160 @@ export default function PlansPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-24"></div>
-                      </TableCell>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-16"></div>
-                      </TableCell>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-16"></div>
-                      </TableCell>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-16"></div>
-                      </TableCell>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-12"></div>
-                      </TableCell>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-20"></div>
-                      </TableCell>
-                      <TableCell className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-8"></div>
+                <TableSkeleton
+                  loading={fetching || refreshing}
+                  rows={plans.length || 1}
+                  columns={7}>
+                  {plans.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        No plans found
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : filteredPlans.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      No plans found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPlans.map((plan) => (
-                    <TableRow key={plan.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{plan.name}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">{plan.description}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">{formatCurrency(Number(plan.price))}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{plan.interval}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={plan.status === PlanStatus.active ? "default" : "secondary"}>{plan.status}</Badge>
-                      </TableCell>
-                      <TableCell>{plan._count.subscriptions}</TableCell>
-                      <TableCell>{new Date(plan.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditModal(plan)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicatePlan(plan)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>
-                              <Power className="mr-2 h-4 w-4" />
-                              {plan.status === PlanStatus.active ? "Deactivate" : "Activate"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedPlan(plan)
-                                setIsDeleteModalOpen(true)
-                              }}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                  ) : (
+                    plans.map((plan) => (
+                      <TableRow key={plan.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{plan.name}</div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">{plan.description}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{formatCurrency(Number(plan.price))}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{plan.interval}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={plan.status === PlanStatus.active ? "default" : "secondary"}>
+                            {plan.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{plan._count?.subscriptions || 0}</TableCell>
+                        <TableCell>{new Date(plan.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditModal(plan)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicatePlan(plan)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>
+                                <Power className="mr-2 h-4 w-4" />
+                                {plan.status === PlanStatus.active ? "Deactivate" : "Activate"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => openDeleteModal(plan)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableSkeleton>
               </TableBody>
             </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-end mt-6">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery({ page: Math.max(pagination.currentPage - 1, 1) })}
+                disabled={pagination.currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              <span className="text-sm text-gray-600">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery({ page: Math.min(pagination.currentPage + 1, pagination.totalPages) })}
+                disabled={pagination.currentPage === pagination.totalPages}
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Create Plan Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Plan</DialogTitle>
-            <DialogDescription>Add a new membership plan to your gym</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                className="col-span-3"
-                placeholder="e.g., Premium Monthly"
-              />
+      {/* Plan Features Guide */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan Configuration Guide</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-blue-800 mb-3">Monthly Plans</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>Lower commitment for new members</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>Higher monthly revenue per member</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>Easier to modify pricing</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                  <span>Higher churn rate potential</span>
+                </li>
+              </ul>
             </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="description" className="text-right pt-2">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                className="col-span-3"
-                placeholder="Describe the plan benefits..."
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">
-                Price (₦)
-              </Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))}
-                className="col-span-3"
-                placeholder="25000"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="interval" className="text-right">
-                Interval
-              </Label>
-              <Select
-                value={formData.interval}
-                onValueChange={(value: "monthly" | "annual") => setFormData((prev) => ({ ...prev, interval: value }))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annual">Annual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">Features</Label>
-              <div className="col-span-3 space-y-2">
-                {formData.features.map((feature, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={feature}
-                      onChange={(e) => updateFeature(index, e.target.value)}
-                      placeholder="Enter feature..."
-                    />
-                    {formData.features.length > 1 && (
-                      <Button type="button" variant="outline" size="icon" onClick={() => removeFeature(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={addFeature} className="w-full bg-transparent">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Feature
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Switch
-                  id="status"
-                  checked={formData.status === "active"}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))
-                  }
-                />
-                <Label htmlFor="status">{formData.status === "active" ? "Active" : "Inactive"}</Label>
-              </div>
+            <div>
+              <h4 className="font-semibold text-purple-800 mb-3">Annual Plans</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>Better cash flow with upfront payment</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>Lower member churn rate</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span>Attractive discount for members</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                  <span>Higher barrier to entry</span>
+                </li>
+              </ul>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreatePlan}>Create Plan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
 
-      {/* Edit Plan Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Plan</DialogTitle>
-            <DialogDescription>Update the plan details</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="edit-description" className="text-right pt-2">
-                Description
-              </Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-price" className="text-right">
-                Price (₦)
-              </Label>
-              <Input
-                id="edit-price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-interval" className="text-right">
-                Interval
-              </Label>
-              <Select
-                value={formData.interval}
-                onValueChange={(value: "monthly" | "annual") => setFormData((prev) => ({ ...prev, interval: value }))}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annual">Annual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">Features</Label>
-              <div className="col-span-3 space-y-2">
-                {formData.features.map((feature, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={feature}
-                      onChange={(e) => updateFeature(index, e.target.value)}
-                      placeholder="Enter feature..."
-                    />
-                    {formData.features.length > 1 && (
-                      <Button type="button" variant="outline" size="icon" onClick={() => removeFeature(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button type="button" variant="outline" onClick={addFeature} className="w-full bg-transparent">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Feature
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-status" className="text-right">
-                Status
-              </Label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Switch
-                  id="edit-status"
-                  checked={formData.status === "active"}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))
-                  }
-                />
-                <Label htmlFor="edit-status">{formData.status === "active" ? "Active" : "Inactive"}</Label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditPlan}>Update Plan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Plan</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{selectedPlan?.name}"? This action cannot be undone.
-              {selectedPlan?._count.subscriptions && selectedPlan._count.subscriptions > 0 && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-yellow-800 text-sm">
-                    ⚠️ This plan has {selectedPlan._count.subscriptions} active members. Deleting it may affect their
-                    subscriptions.
-                  </p>
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeletePlan}>
-              Delete Plan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreatePlanModal onActionComplete={onActionComplete} />
+      <EditPlanModal onActionComplete={onActionComplete} />
+      <DeletePlanModal onActionComplete={onActionComplete} />
     </div>
   )
 }
