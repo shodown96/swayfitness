@@ -1,5 +1,3 @@
-"use server"
-
 import fs from "fs";
 import axios from 'axios';
 import nodemailer from 'nodemailer';
