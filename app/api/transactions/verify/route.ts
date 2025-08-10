@@ -17,7 +17,6 @@ interface RouteBodyParams {
 }
 export async function POST(request: NextRequest) {
     try {
-
         // Parse request body
         const { reference, registrationData }: RouteBodyParams = await request.json()
         if (!reference) {

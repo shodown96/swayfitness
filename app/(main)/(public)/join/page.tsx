@@ -93,7 +93,7 @@ export default function JoinPage() {
     }
   }
 
-  const totalToday = selectedPlan ? selectedPlan.price + REGISTRATION_FEE : REGISTRATION_FEE
+  const totalToday = selectedPlan ? selectedPlan.amount + REGISTRATION_FEE : REGISTRATION_FEE
 
 
   return (
@@ -160,7 +160,7 @@ export default function JoinPage() {
                         </p>
                       )}
                       <p className="text-2xl font-bold text-orange-500">
-                        {formatPrice(selectedPlan.price)}/{selectedPlan.interval}
+                        {formatPrice(selectedPlan.amount)}/{selectedPlan.interval}
                       </p>
                       {selectedPlan.oldPrice && (
                         <Badge variant="secondary" className="mt-1 bg-green-100 text-green-800">
@@ -191,7 +191,7 @@ export default function JoinPage() {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
                     <span>Selected Plan:</span>
-                    <span className="font-semibold">{selectedPlan ? formatPrice(selectedPlan.price) : "₦0"}</span>
+                    <span className="font-semibold">{selectedPlan ? formatPrice(selectedPlan.amount) : "₦0"}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Registration Fee:</span>
@@ -209,7 +209,7 @@ export default function JoinPage() {
                     <div className="text-sm text-gray-600 mt-4 p-3 bg-gray-50 rounded-lg">
                       <p className="font-semibold mb-1">Next Payment:</p>
                       <p>
-                        {formatPrice(selectedPlan.price)} on {getNextPaymentDate(selectedPlan.interval)}
+                        {formatPrice(selectedPlan.amount)} on {getNextPaymentDate(selectedPlan.interval)}
                       </p>
                     </div>
                   )}

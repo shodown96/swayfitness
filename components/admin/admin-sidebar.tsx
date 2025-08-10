@@ -15,10 +15,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
-  Settings,
   Shield,
   User,
-  Users,
+  Users
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"

@@ -19,12 +19,14 @@ export async function GET(
   { params }: APIRouteIDParams
 ) {
   try {
+    const { user } = await checkAuth(true)
     const member = await prisma.account.findFirst({
       where: {
         id: (await params).id,
         role: AccountRole.member,
       },
-      include: { subscription: { include: { plan: true } } }
+      include: { subscription: { include: { plan: true } } },
+      omit: { password: true }
     })
 
     if (!member) {
@@ -114,6 +116,7 @@ export async function PUT(
         ...(emergencyContactPhone && { emergencyContactPhone }),
         ...(emergencyContactRelationship && { emergencyContactRelationship }),
       },
+      omit: { password: true }
     })
 
     return constructResponse({

@@ -1,11 +1,10 @@
+import { checkAuth } from "@/actions/auth/check-auth"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
-import { TransactionStatus } from "@prisma/client"
 import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
+  const { user } = await checkAuth(true)
   const [totalTransactions, successfulTransactions, failedTransactions, pendingTransactions, refundedTransactions, totalRevenueData] = await Promise.all([
     prisma.transaction.count(),
     prisma.transaction.count({ where: { status: "success" } }),

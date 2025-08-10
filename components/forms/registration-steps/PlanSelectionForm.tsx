@@ -52,7 +52,7 @@ export default function PlanSelectionForm({ formik, onPrev }: PlanSelectionFormP
 
   const planOptions = Object.values(plans).map((plan) => ({
     value: plan.id,
-    label: `${plan.name} - ${formatPrice(plan.price)}/${plan.interval}`,
+    label: `${plan.name} - ${formatPrice(plan.amount)}/${plan.interval}`,
   }))
 
   return (
@@ -82,7 +82,7 @@ export default function PlanSelectionForm({ formik, onPrev }: PlanSelectionFormP
           <h3 className="font-semibold text-orange-800 mb-2">{selectedPlan.name}</h3>
           <p className="text-sm text-orange-700 mb-2">{selectedPlan.description}</p>
           <p className="text-lg font-bold text-orange-600">
-            {formatPrice(selectedPlan.price)}/{selectedPlan.interval}
+            {formatPrice(selectedPlan.amount)}/{selectedPlan.interval}
           </p>
         </div>
       ) : null}

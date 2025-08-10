@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import useAPIQuery from "@/hooks/use-api-query"
 import { PlansService } from "@/lib/services/plans.service"
@@ -25,6 +24,7 @@ import { FullPlan } from "@/types/plan"
 import { PlanStatus } from "@prisma/client"
 import { Copy, Edit, MoreHorizontal, Plus, Power, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Select } from "@/components/custom/Select"
 
 export default function NewPlansPage() {
   const [plans, setPlans] = useState<FullPlan[]>([])
@@ -103,25 +103,15 @@ export default function NewPlansPage() {
 
   const handleToggleStatus = async (plan: FullPlan) => {
     try {
-      const { success } = await PlansService.toggleStatus(plan.id)
+      const toggleData = plan.status === 'active' ?
+        { status: 'inactive' } : { status: 'active' }
+      const { success } = await PlansService.update(plan.id, toggleData)
       if (success) {
         await fetchData()
         await fetchStats()
       }
     } catch (err) {
       console.error("Failed to toggle plan status", err)
-    }
-  }
-
-  const handleDuplicatePlan = async (plan: FullPlan) => {
-    try {
-      const { success } = await PlansService.duplicate(plan.id)
-      if (success) {
-        await fetchData()
-        await fetchStats()
-      }
-    } catch (err) {
-      console.error("Failed to duplicate plan", err)
     }
   }
 
@@ -215,26 +205,28 @@ export default function NewPlansPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={query.status || "all"} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={query.interval || "all"} onValueChange={handleIntervalFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by interval" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Intervals</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="annual">Annual</SelectItem>
-              </SelectContent>
-            </Select>
+            <Select
+              value={query.status}
+              onChange={handleStatusFilter}
+              placeholder="Filter by status"
+              containerClass="w-full sm:w-[180px]"
+              options={[
+                { value: "all", label: "All Status" },
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+            />
+            <Select
+              value={query.interval}
+              onChange={handleIntervalFilter}
+              placeholder="Filter by status"
+              containerClass="w-full sm:w-[180px]"
+              options={[
+                { value: "all", label: "All Intervals" },
+                { value: "monthly", label: "Monthly" },
+                { value: "anaually", label: "Annually" },
+              ]}
+            />
           </div>
         </CardContent>
       </Card>
@@ -279,7 +271,7 @@ export default function NewPlansPage() {
                             <div className="text-sm text-gray-500 truncate max-w-xs">{plan.description}</div>
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{formatCurrency(Number(plan.price))}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(Number(plan.amount))}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{plan.interval}</Badge>
                         </TableCell>
@@ -301,10 +293,6 @@ export default function NewPlansPage() {
                               <DropdownMenuItem onClick={() => openEditModal(plan)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDuplicatePlan(plan)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>
                                 <Power className="mr-2 h-4 w-4" />

@@ -7,7 +7,6 @@ export const API_ENDPOINTS = {
     Stats: "/api/plans/stats",
     ById: (id: string) => `/api/plans/${id}`,
     Status: (id: string) => `/api/plans/${id}/status`,
-    Duplicate: (id: string) => `/api/plans/${id}/duplicate`,
   },
   Auth: {
     AdminSignIn: "/api/auth/admin/sign-in",

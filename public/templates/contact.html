@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Contact from {{appName}}</title>
+    <meta itemprop="name" content="{{appName}}">
+    <!-- <meta itemprop="logo"
+        content="https://res.cloudinary.com/dwtc65zg4/image/upload/v1712738098/logos/TGM_Logo_nd4vgw.png"> -->
+</head>
+
+<body style="font-family: 'Arial', sans-serif; margin: 0; padding: 0; padding-bottom: 50px; background-color: #f4f4f4;">
+    <table align="center" cellpadding="0" cellspacing="0" width="600"
+        style="border-collapse: collapse; background-color: #ffffff; margin-top: 30px;">
+        <!-- <tr>
+            <td style="padding: 0px 40px; text-align: left;">
+                <h3 style="color: #333333;">New Contact from {{appName}}</h3>
+            </td>
+        </tr> -->
+        <tr>
+            <td style="padding: 20px 40px; text-align: left;">
+                <p style="color: #555555; font-size: 16px;">Hi Admin,</p>
+                <p style="color: #555555; font-size: 16px;">
+                    You got a message from {{name}} through your contact form on {{appName}}.
+                </p>
+                <h4 style="color: #333333; margin-top: 20px; margin-bottom:-10px">Contact Information:</h4>
+                <ul style="list-style-type:decimal; margin: 0; padding: 0; margin-left: 20px;">
+                    <li style="margin-bottom: 10px;">
+                        <p><strong>Name</strong>: {{name}}</p>
+                    </li>
+                    <li style="margin-bottom: 10px;">
+                        <p><strong>Email</strong>: {{email}}</p>
+                    </li>
+                </ul>
+
+                <h4 style="color: #333333; margin-top: 20px; margin-bottom:-10px">Message:</h4>
+                <p style="color: #555555; font-size: 16px;">
+                    {{message}}
+                </p>
+
+                <!-- <p style="color: #555555; font-size: 16px;">Thank you for choosing {{appName}}!</p> -->
+                <p style="color: #555555; font-size: 16px;">Best regards,<br>{{appName}} Team</p>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

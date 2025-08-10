@@ -4,7 +4,7 @@ export interface Plan {
   id: string
   name: string
   description?: string
-  price: number
+  amount: number
   interval: 'month' | 'year'
   originalPrice?: number
   popular?: boolean

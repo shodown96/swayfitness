@@ -11,6 +11,7 @@ export const VALIDATION_MESSAGES = {
 }
 export const ERROR_MESSAGES = {
   BadRequestError: "Bad Request Error",
+  NotFoundError: "Not Found Error",
   AccountAlreadyCreated: "You already have an account with us.",
   AlreadySignedIn: "You're already signed in.",
   AuthenticationError: "You're not signed in.",

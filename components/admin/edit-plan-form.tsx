@@ -32,7 +32,7 @@ export default function EditPlanModal({ onActionComplete }: EditPlanModalProps) 
   const [formData, setFormData] = useState<CreatePlanData>({
     name: "",
     description: "",
-    price: 0,
+    amount: 0,
     interval: PlanInterval.monthly,
     features: [""],
     status: "active",
@@ -46,7 +46,7 @@ export default function EditPlanModal({ onActionComplete }: EditPlanModalProps) 
       setFormData({
         name: selectedPlan.name,
         description: selectedPlan.description,
-        price: Number(selectedPlan.price),
+        amount: Number(selectedPlan.amount),
         interval: selectedPlan.interval,
         features: selectedPlan.features.length > 0 ? [...selectedPlan.features] : [""],
         status: selectedPlan.status,
@@ -58,7 +58,7 @@ export default function EditPlanModal({ onActionComplete }: EditPlanModalProps) 
     setFormData({
       name: "",
       description: "",
-      price: 0,
+      amount: 0,
       interval: PlanInterval.monthly,
       features: [""],
       status: "active",
@@ -86,7 +86,7 @@ export default function EditPlanModal({ onActionComplete }: EditPlanModalProps) 
         return
       }
       
-      if (cleanedFormData.price <= 0) {
+      if (cleanedFormData.amount <= 0) {
         toast({
           title: "Error",
           description: "Price must be greater than 0",
@@ -184,14 +184,14 @@ export default function EditPlanModal({ onActionComplete }: EditPlanModalProps) 
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="edit-price" className="text-right">
+            <Label htmlFor="edit-amount" className="text-right">
               Price (₦)
             </Label>
             <Input
-              id="edit-price"
+              id="edit-amount"
               type="number"
-              value={formData.price}
-              onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))}
+              value={formData.amount}
+              onChange={(e) => setFormData((prev) => ({ ...prev, amount: Number(e.target.value) }))}
               className="col-span-3"
               placeholder="25000"
               min="1"
@@ -205,7 +205,7 @@ export default function EditPlanModal({ onActionComplete }: EditPlanModalProps) 
             </Label>
             <Select
               value={formData.interval}
-              onValueChange={(value: "monthly" | "annual") => setFormData((prev) => ({ ...prev, interval: value }))}
+              onValueChange={(value: "monthly" | "annually") => setFormData((prev) => ({ ...prev, interval: value }))}
               disabled={isSubmitting}
             >
               <SelectTrigger className="col-span-3">

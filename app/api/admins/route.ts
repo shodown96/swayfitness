@@ -1,3 +1,4 @@
+import { checkAuth } from "@/actions/auth/check-auth"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
@@ -5,6 +6,7 @@ import { AccountRole, AccountStatus, Prisma } from "@prisma/client"
 import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
+  await checkAuth(true)
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("search") || ""
   const role = searchParams.get("role")
@@ -30,6 +32,7 @@ export async function GET(request: NextRequest) {
   const [admins, total] = await Promise.all([
     prisma.account.findMany({
       where,
+      omit: { password: true },
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: "desc" },
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
         role,
         password: String(process.env.GOOD_PASSWORD), // placeholder
       },
+      omit: { password: true }
     })
 
     return constructResponse({

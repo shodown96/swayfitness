@@ -1,10 +1,12 @@
-import { NextRequest } from "next/server"
+import { checkAuth } from "@/actions/auth/check-auth"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
 import { AccountRole, AccountStatus } from "@prisma/client"
+import { NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await checkAuth(true)
     const [totalMembers, activeMembers, inactiveMembers, suspendedMembers] = await Promise.all([
       prisma.account.count({
         where: { role: AccountRole.member },

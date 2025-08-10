@@ -1,7 +1,7 @@
-import { ACCESS_TOKEN_NAME, verifyAccessToken } from "@/lib/auth";
+import { checkAuth } from "@/actions/auth/check-auth";
+import { ACCESS_TOKEN_NAME } from "@/lib/auth";
 import { ERROR_MESSAGES } from "@/lib/constants/messages";
 import { DOMAIN } from "@/lib/constants/paths";
-import { prisma } from "@/lib/prisma";
 import { constructResponse } from "@/lib/response";
 import { cookies } from "next/headers";
 import { type NextRequest } from "next/server";
@@ -9,15 +9,7 @@ import { type NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies()
-    const accessToken = cookieStore.get(ACCESS_TOKEN_NAME);
-
-    const decodedToken: any = await verifyAccessToken(accessToken?.value);
-    if (!decodedToken.accountId) throw new Error("User not found");
-
-    const user = await prisma.account.findUnique({
-      where: { id: decodedToken.accountId },
-    });
-
+    const { user } = await checkAuth(true)
     if (!user) throw new Error("User not found");
 
     cookieStore.delete({
@@ -39,9 +31,9 @@ export async function GET(request: NextRequest) {
     //     domain: DOMAIN,
     // })
 
-      return constructResponse({
-        statusCode: 200,
-      })
+    return constructResponse({
+      statusCode: 200,
+    })
   } catch (error) {
     console.error("Error to sign in user", error);
 

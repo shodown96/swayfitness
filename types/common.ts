@@ -5,7 +5,6 @@ export interface FilterParams {
   type?: string;
   status?: string;
   amount?: number;
-  price?: number
 }
 
 export interface Pagination {

@@ -1,13 +1,13 @@
 "use client"
 
 import EditSubscriptionModal from "@/components/admin/edit-subscription-modal"
+import { Select } from "@/components/custom/Select"
 import TableSkeleton from "@/components/custom/TableSkeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -17,10 +17,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import useAPIQuery from "@/hooks/use-api-query"
+import { PlansService } from "@/lib/services/plans.service"
 import { SubscriptionsService } from "@/lib/services/subscriptions.service"
 import { useAdminSubscriptionStore } from "@/lib/stores/adminSubStore"
 import { delayDebounceFn, formatCurrency } from "@/lib/utils"
-import { FullSubscription } from "@/types/plan"
+import { FullPlan, FullSubscription } from "@/types/plan"
 import { AlertCircle, ChevronLeft, ChevronRight, CreditCard, Edit, Pause, Search, Users, X } from 'lucide-react'
 import { useEffect, useState } from "react"
 
@@ -28,6 +29,7 @@ export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<FullSubscription[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [fetching, setFetching] = useState(false)
+  const [plans, setPlans] = useState<FullPlan[]>([])
   const { setQuery, query, pagination, setPagination } = useAPIQuery()
   const [stats, setStats] = useState({
     activeSubscriptions: 0,
@@ -66,6 +68,20 @@ export default function SubscriptionsPage() {
       }
     } catch (err) {
       console.error("Failed to fetch subscriptions", err)
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const fetchPlans = async () => {
+    if (!refreshing) setFetching(true)
+    try {
+      const { data } = await PlansService.getAllForAdmin(query)
+      if (data) {
+        setPlans(data.items)
+      }
+    } catch (err) {
+      console.error("Failed to fetch plans", err)
     } finally {
       setFetching(false)
     }
@@ -119,6 +135,7 @@ export default function SubscriptionsPage() {
 
   useEffect(() => {
     fetchStats()
+    fetchPlans()
   }, [])
 
   return (
@@ -201,35 +218,38 @@ export default function SubscriptionsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search by member name or ID..."
+                  placeholder="Search by member name or plan name..."
                   value={query.search || ""}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={query.status || "all"} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={query.plan || "all"} onValueChange={handlePlanFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Plans</SelectItem>
-                <SelectItem value="basic">Basic</SelectItem>
-                <SelectItem value="premium">Premium</SelectItem>
-                <SelectItem value="elite">Elite</SelectItem>
-              </SelectContent>
-            </Select>
+
+            <Select
+              value={query.status}
+              onChange={handleStatusFilter}
+              placeholder="Status"
+              containerClass="w-40"
+              options={[
+                { value: "all", label: "All Status" },
+                { value: "active", label: "Active" },
+                { value: "expired", label: "Expired" },
+                { value: "suspended", label: "Suspended" },
+              ]}
+            />
+            <Select
+              value={query.plan}
+              onChange={handlePlanFilter}
+              placeholder="Plan"
+              containerClass="w-40"
+              options={[
+                { value: "all", label: "All Plans" },
+                ...(plans.length ? plans.map(v => (
+                  { value: v.id, label: v.name }
+                )) : [])
+              ]}
+            />
           </div>
         </CardContent>
       </Card>
@@ -288,7 +308,7 @@ export default function SubscriptionsPage() {
                       </TableCell>
                       <TableCell>{new Date(subscription.startDate).toLocaleDateString()}</TableCell>
                       <TableCell>{subscription.nextBillingDate ? new Date(subscription.nextBillingDate).toLocaleDateString() : '-'}</TableCell>
-                      <TableCell>{formatCurrency(subscription.plan.price)}</TableCell>
+                      <TableCell>{formatCurrency(subscription.plan.amount)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Button

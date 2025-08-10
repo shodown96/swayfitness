@@ -2,12 +2,12 @@
 
 import RefundTransactionDetailModal from "@/components/admin/refund-transaction-modal"
 import TransactionDetailModal from "@/components/admin/transaction-modal"
+import { Select } from "@/components/custom/Select"
 import TableSkeleton from "@/components/custom/TableSkeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -246,36 +246,38 @@ export default function TransactionsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Search by member name or reference..."
+                    placeholder="Search by reference, description or member name..."
                     value={query.search || ""}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-10"
                   />
                 </div>
               </div>
-              <Select value={query.status || "all"} onValueChange={handleStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="success">Success</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={query.type || "all"} onValueChange={handleTypeFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="subscription">Subscription</SelectItem>
-                  <SelectItem value="registration">Registration</SelectItem>
-                  <SelectItem value="refund">Refund</SelectItem>
-                </SelectContent>
-              </Select>
+              <Select
+                value={query.status}
+                onChange={handleStatusFilter}
+                placeholder="Status"
+                containerClass="w-40"
+                options={[
+                  { value: "all", label: "All Status" },
+                  { value: "success", label: "Success" },
+                  { value: "failed", label: "Failed" },
+                  { value: "pending", label: "Pending" },
+                  { value: "refunded", label: "Refunded" },
+                ]}
+              />
+              <Select
+                value={query.type}
+                onChange={handleStatusFilter}
+                placeholder="Status"
+                containerClass="w-40"
+                options={[
+                  { value: "all", label: "All Types" },
+                  { value: "subscription", label: "Subscription" },
+                  { value: "registration", label: "Registration" },
+                  { value: "refund", label: "Refund" },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>

@@ -15,12 +15,12 @@ export const checkAuth = async (admin = false): Promise<CheckAuthResponse> => {
             id: decodedToken.accountId,
             role: admin ? { not: AccountRole.member } : AccountRole.member
         },
-        include: { subscription: { include: { plan: true } } }
+        include: { subscription: { include: { plan: true } } },
     });
 
     if (!user) throw new Error("User not found");
 
-    return { isAuthenticated: true, user };
+    return { isAuthenticated: true, user: { ...user, password: String(!!user.password) } };
     // } catch (error) {
     //     // console.error("Could not check auth", error);
     //     return { isAuthenticated: false };

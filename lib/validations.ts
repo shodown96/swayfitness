@@ -2,7 +2,7 @@ import { z } from "zod"
 import { toFormikValidationSchema } from "zod-formik-adapter"
 import { VALIDATION_MESSAGES } from "./constants/messages"
 import { formatString } from "./utils"
-import { AccountRole, AccountStatus, Gender } from "@prisma/client"
+import { AccountRole, AccountStatus, Gender, PlanInterval } from "@prisma/client"
 
 // Auth Validations
 const SignInParams = z.object({
@@ -94,7 +94,7 @@ const CreatePlanParams = z.object({
   description: z.string({
     required_error: formatString(VALIDATION_MESSAGES.Required, "Description"),
   }),
-  price: z
+  amount: z
     .number({ required_error: formatString(VALIDATION_MESSAGES.Required, "Price") })
     .min(1, { message: VALIDATION_MESSAGES.PriceMin }),
   interval: z.enum(["monthly", "annual"], {
@@ -189,7 +189,9 @@ export const SendNotificationParamsSchema = toFormikValidationSchema(SendNotific
 export const EditAdminParamsSchema = toFormikValidationSchema(EditAdminParams)
 export const InviteAdminParamsSchema = toFormikValidationSchema(InviteAdminParams)
 
-export type CreatePlanParamsTypeV2 = z.infer<typeof CreatePlanParamsV2>
+export type CreatePlanParamsTypeV2 = z.infer<typeof CreatePlanParamsV2> & {
+  interval: PlanInterval
+}
 export type SignInParamsType = z.infer<typeof SignInParams>
 export type AdminLoginParamsType = z.infer<typeof AdminLoginParams>
 export type MemberRegistrationParamsType = z.infer<typeof MemberRegistrationParams> & {

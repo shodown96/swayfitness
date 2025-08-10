@@ -83,7 +83,8 @@ export async function PUT(
         ...(emergencyContactPhone && { emergencyContactPhone }),
         ...(emergencyContactRelationship && { emergencyContactRelationship }),
       },
-      include: { subscription: { include: { plan: true } } }
+      include: { subscription: { include: { plan: true } } },
+      omit: { password: true }
     })
 
 
@@ -102,12 +103,13 @@ export async function PUT(
 
 // DELETE /api/members/me/:id
 export async function DELETE(
-  request: NextRequest,
-  { params }: APIRouteIDParams
+  request: NextRequest
 ) {
   try {
+
+    const { user } = await checkAuth()
     const existingMember = await prisma.account.findUnique({
-      where: { id: (await params).id },
+      where: { id: user?.id },
     })
 
     if (!existingMember || existingMember.role !== AccountRole.member) {
@@ -118,7 +120,7 @@ export async function DELETE(
     }
 
     await prisma.account.delete({
-      where: { id: (await params).id },
+      where: { id: user?.id },
     })
 
     return constructResponse({

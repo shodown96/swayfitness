@@ -15,10 +15,10 @@ export interface PlanFilters {
 export interface CreatePlanData {
   name: string
   description: string
-  price: number
+  amount: number
   interval: PlanInterval
   features: string[]
-  status: PlanStatus
+  status: string
 }
 
 export class PlansService {
@@ -44,14 +44,6 @@ export class PlansService {
 
   static async delete(id: string) {
     return mainClient.delete(API_ENDPOINTS.Plans.ById(id))
-  }
-
-  static async toggleStatus(id: string) {
-    return mainClient.patch<FullPlan>(API_ENDPOINTS.Plans.Status(id))
-  }
-
-  static async duplicate(id: string) {
-    return mainClient.post<FullPlan>(API_ENDPOINTS.Plans.Duplicate(id))
   }
 
   static async getStats() {

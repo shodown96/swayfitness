@@ -1,11 +1,10 @@
 "use server";
-import PaystackService from "@/lib/services/paystack.service";
-import { checkAuth } from "../auth/check-auth";
 import { prisma } from "@/lib/prisma";
+import PaystackService from "@/lib/services/paystack.service";
+import { FullAccount } from "@/types/account";
 
-export const getManageLink = async (): Promise<string | null> => {
+export const getManageLink = async (user: FullAccount): Promise<string | null> => {
     try {
-        const { user } = await checkAuth()
         if (!user || !user.subscription) throw new Error("Couldn't find user subscription")
         let subscriptionCode = user.subscription.subscriptionCode
         const planApiId = user.subscription.plan.apiId as string

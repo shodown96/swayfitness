@@ -59,10 +59,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
 
   try {
+    const { user } = await checkAuth(true)
     const body = await request.json()
-    const { name, description, price, interval, features, status } = body
+    const { name, description, amount, interval, features, status } = body
 
-    if (!name || !description || !price || !interval || !features) {
+    if (!name || !description || !amount || !interval || !features) {
       return constructResponse({
         statusCode: 400,
         message: ERROR_MESSAGES.BadRequestError,
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
-        price: Number(price),
+        amount: Number(amount),
         interval,
         features: features.filter((f: string) => f.trim() !== ""),
         status: status || "active",

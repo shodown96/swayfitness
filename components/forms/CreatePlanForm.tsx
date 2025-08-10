@@ -30,7 +30,7 @@ export default function CreatePlanForm({
     initialValues: {
       name: initialValues?.name || "",
       description: initialValues?.description || "",
-      price: initialValues?.price || 0,
+      amount: initialValues?.amount || 0,
       interval: initialValues?.interval || "monthly",
       features: initialValues?.features || [],
       status: initialValues?.status || "active",
@@ -72,14 +72,14 @@ export default function CreatePlanForm({
         />
 
         <Input
-          name="price"
+          name="amount"
           type="number"
           placeholder="25000"
-          value={formik.values.price.toString()}
-          onChange={(e) => formik.setFieldValue("price", Number(e.target.value))}
+          value={formik.values.amount.toString()}
+          onChange={(e) => formik.setFieldValue("amount", Number(e.target.value))}
           onBlur={formik.handleBlur}
-          error={formik.errors.price}
-          touched={formik.touched.price}
+          error={formik.errors.amount}
+          touched={formik.touched.amount}
           label="Price (₦) *"
         />
       </div>

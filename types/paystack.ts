@@ -1,3 +1,4 @@
+import { PlanInterval } from "@prisma/client";
 
 export interface PaystackConfig {
   secretKey: string;
@@ -15,7 +16,7 @@ export interface PaystackCustomer {
 export interface PaystackPlan {
   name: string;
   amount: number; // In kobo
-  interval: 'daily' | 'weekly' | 'monthly' | 'annually';
+  interval: PlanInterval;
   description?: string;
   currency?: string;
 }
@@ -535,4 +536,9 @@ export interface PlanPayload {
 export interface PlanDeletedResponse {
   message: string
   status: boolean
+}
+
+export interface UpdatedPlanResponse {
+  status: boolean;
+  message: string;
 }

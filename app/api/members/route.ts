@@ -1,13 +1,16 @@
+import { checkAuth } from "@/actions/auth/check-auth"
+import { generateRandomPassword } from "@/lib/auth"
 import { hashPassword } from "@/lib/bcrypt"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
-import { AccountRole, AccountStatus, Gender, PlanInterval } from "@prisma/client"
+import { AccountRole, AccountStatus, Gender } from "@prisma/client"
 import { NextRequest } from "next/server"
 
 // GET /api/members
 export async function GET(request: NextRequest) {
   try {
+    await checkAuth(true)
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search") || ""
     const status = searchParams.get("status") || "all"
@@ -36,6 +39,7 @@ export async function GET(request: NextRequest) {
         include: {
           subscription: { include: { plan: true } },
         },
+        omit: { password: true },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: "desc" },
@@ -66,10 +70,11 @@ export async function GET(request: NextRequest) {
 // POST /api/members
 export async function POST(request: NextRequest) {
   try {
+    await checkAuth(true)
     const body = await request.json()
-    const { name, email, phone, dob, gender, planId, password } = body
+    const { name, email, phone, dob, gender, planId } = body
 
-    if (!name || !email || !phone || !dob || !gender || !planId || !password) {
+    if (!name || !email || !phone || !dob || !gender || !planId) {
       return constructResponse({
         statusCode: 400,
         message: "Missing required fields",
@@ -93,24 +98,7 @@ export async function POST(request: NextRequest) {
 
     const memberId = `GYM${String(totalMembers + 1).padStart(3, "0")}`
 
-    const plan = await prisma.plan.findUnique({
-      where: { id: planId },
-    })
-
-    if (!plan) {
-      return constructResponse({
-        statusCode: 400,
-        message: "Invalid plan selected",
-      })
-    }
-
-    const now = new Date()
-    const endDate = new Date(now)
-    if (plan.interval === PlanInterval.monthly) {
-      endDate.setMonth(endDate.getMonth() + 1)
-    } else {
-      endDate.setFullYear(endDate.getFullYear() + 1)
-    }
+    const password = generateRandomPassword()
     const hashedPassword = await hashPassword(password)
     const newMember = await prisma.account.create({
       data: {
@@ -123,23 +111,8 @@ export async function POST(request: NextRequest) {
         status: AccountStatus.active,
         memberId,
         password: hashedPassword,
-        subscription: {
-          create: {
-            planId,
-            startDate: now,
-            endDate,
-            amount: plan.price,
-            status: AccountStatus.active,
-          },
-        },
       },
-      include: {
-        subscription: {
-          include: {
-            plan: true,
-          },
-        },
-      },
+      omit: { password: true }
     })
 
     return constructResponse({

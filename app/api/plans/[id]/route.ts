@@ -1,45 +1,62 @@
-import { type NextRequest } from "next/server"
+import { checkAuth } from "@/actions/auth/check-auth"
+import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
-import { ERROR_MESSAGES } from "@/lib/constants/messages"
+import PaystackService from "@/lib/services/paystack.service"
 import { APIRouteIDParams } from "@/types/common"
+import { type NextRequest } from "next/server"
 
 export async function GET(
   request: NextRequest,
   { params }: APIRouteIDParams,
 ) {
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  try {
+    const { user } = await checkAuth(true)
+    const plan = await prisma.plan.findUnique({
+      where: { id: (await params).id },
+    })
 
-  const plan = await prisma.plan.findUnique({
-    where: { id: (await params).id },
-  })
+    if (!plan) {
+      return constructResponse({
+        statusCode: 404,
+        message: ERROR_MESSAGES.NotFoundError,
+      })
+    }
 
-  if (!plan) {
     return constructResponse({
-      statusCode: 404,
-      message: "Plan not found",
+      statusCode: 200,
+      data: plan,
+    })
+  } catch (error) {
+
+    return constructResponse({
+      statusCode: 500,
+      message: ERROR_MESSAGES.InternalServerError,
     })
   }
-
-  return constructResponse({
-    statusCode: 200,
-    data: plan,
-  })
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: APIRouteIDParams,
 ) {
-  await new Promise((resolve) => setTimeout(resolve, 600))
 
   try {
+    const { user } = await checkAuth(true)
     const body = await request.json()
-    const { name, description, price, interval, features, status } = body
+    const { name, description, amount, interval, features, status } = body
 
     const existingPlan = await prisma.plan.findUnique({ where: { id: (await params).id } })
 
     if (!existingPlan) {
+      return constructResponse({
+        statusCode: 404,
+        message: "Plan not found",
+      })
+    }
+
+
+    if (!existingPlan.code) {
       return constructResponse({
         statusCode: 404,
         message: "Plan not found",
@@ -62,16 +79,27 @@ export async function PUT(
       }
     }
 
+    const apiUpdated = await PaystackService.updatePlan(existingPlan.code, {
+      name,
+      interval,
+      description: description,
+      amount: amount ? amount * 100 : undefined,
+    })
+    if (!apiUpdated.status) {
+      return constructResponse({
+        statusCode: 400,
+        message: ERROR_MESSAGES.BadRequestError,
+      })
+    }
     const updatedPlan = await prisma.plan.update({
       where: { id: (await params).id },
       data: {
         ...(name && { name }),
         ...(description && { description }),
-        ...(price && { price: Number(price) }),
+        ...(amount && { amount: Number(amount) }),
         ...(interval && { interval }),
         ...(features && { features: features.filter((f: string) => f.trim() !== "") }),
         ...(status && { status }),
-        updatedAt: new Date(),
       },
     })
 
@@ -82,8 +110,8 @@ export async function PUT(
     })
   } catch (error) {
     return constructResponse({
-      statusCode: 400,
-      message: ERROR_MESSAGES.BadRequestError,
+      statusCode: 500,
+      message: ERROR_MESSAGES.InternalServerError,
     })
   }
 }
@@ -92,8 +120,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: APIRouteIDParams,
 ) {
-  await new Promise((resolve) => setTimeout(resolve, 400))
-
+  const { user } = await checkAuth(true)
   const plan = await prisma.plan.findUnique({
     where: { id: (await params).id },
     include: {
@@ -115,7 +142,17 @@ export async function DELETE(
     })
   }
 
-  await prisma.plan.delete({ where: { id: (await params).id } })
+
+  if (!plan.apiId) {
+    return constructResponse({
+      statusCode: 404,
+      message: "Plan not found",
+    })
+  }
+
+  await PaystackService.deletePlan(plan.apiId)
+  await prisma.plan.delete({ where: { id: plan.id } })
+
 
   return constructResponse({
     statusCode: 200,

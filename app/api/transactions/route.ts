@@ -1,9 +1,11 @@
+import { checkAuth } from "@/actions/auth/check-auth";
 import { ERROR_MESSAGES } from "@/lib/constants/messages";
 import { prisma } from "@/lib/prisma";
 import { constructResponse, paginateItems } from "@/lib/response";
 import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const { user } = await checkAuth(true)
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search") || "";
   const status = searchParams.get("status") || "all";

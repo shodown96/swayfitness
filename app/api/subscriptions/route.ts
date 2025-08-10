@@ -2,8 +2,10 @@ import { type NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
+import { checkAuth } from "@/actions/auth/check-auth"
 
 export async function GET(request: NextRequest) {
+  const { user } = await checkAuth(true)
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("search") || ""
   const status = searchParams.get("status") || "all"

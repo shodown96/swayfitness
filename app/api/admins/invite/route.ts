@@ -1,12 +1,17 @@
+import { checkAuth } from "@/actions/auth/check-auth"
 import { generateRandomPassword } from "@/lib/auth"
 import { hashPassword } from "@/lib/bcrypt"
+import { APP_NAME } from "@/lib/constants/app"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
+import { originURL } from "@/lib/constants/paths"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
+import { EmailService } from "@/lib/services/email.service"
 import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
+    await checkAuth(true)
     const body = await request.json()
     const {
       name,
@@ -37,7 +42,7 @@ export async function POST(request: NextRequest) {
     const password = generateRandomPassword()
     const hashedPassword = await hashPassword(password)
 
-    const created = await prisma.account.create({
+    const account = await prisma.account.create({
       data: {
         name,
         email,
@@ -46,9 +51,18 @@ export async function POST(request: NextRequest) {
         password: hashedPassword
       }
     })
-    
-    // TODO: invitation email sending
-    // await sendInviteEmail({ email: lowerEmail, role })
+
+    await EmailService.sendHTML({
+      emailType: 'newAdmin',
+      subject: `Welcome to the ${APP_NAME} Team`,
+      email: account.email,
+      params: {
+        email: account.email,
+        name: account.name,
+        password: account.password,
+        url: `${originURL}/admin/sign-in`
+      }
+    })
 
     return constructResponse({
       statusCode: 200,

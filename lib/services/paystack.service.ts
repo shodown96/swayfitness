@@ -9,13 +9,13 @@ import {
     PaystackVerifiedTransaction,
     PaystackWebhookEvent,
     PlanDeletedResponse,
-    PlanPayload,
     SubscriptionLinkResponse,
-    SubscriptionsResponse
+    SubscriptionsResponse,
+    UpdatedPlanResponse
 } from '@/types/paystack';
 import { PlanInterval } from '@prisma/client';
 import axios, { AxiosResponse } from 'axios';
-import { addMonths, addYears, parseISO, subMonths, subYears } from "date-fns";
+import { addMonths, addYears, parseISO } from "date-fns";
 
 export class PaystackService {
     static axiosInstance = axios.create({
@@ -76,7 +76,7 @@ export class PaystackService {
     // PLAN MANAGEMENT
     // ============================================================================
 
-    static async createPlan(planData: PaystackPlan): Promise<any> {
+    static async createPlan(planData: PaystackPlan): Promise<CreatedPaystackPlanSuccessResponse> {
         try {
             const response: AxiosResponse = await this.axiosInstance.post('/plan', {
                 ...planData,
@@ -97,14 +97,14 @@ export class PaystackService {
         }
     }
 
-    static async updatePlan(planCode: string, updateData: Partial<PaystackPlan>): Promise<any> {
+    static async updatePlan(idOrCode: string, updateData: Partial<PaystackPlan>): Promise<UpdatedPlanResponse> {
         try {
             const updatePayload = { ...updateData };
             if (updatePayload.amount) {
                 updatePayload.amount = updatePayload.amount * 100; // Convert to kobo
             }
 
-            const response: AxiosResponse = await this.axiosInstance.put(`/plan/${planCode}`, updatePayload);
+            const response: AxiosResponse = await this.axiosInstance.put(`/plan/${idOrCode}`, updatePayload);
             return response.data;
         } catch (error) {
             throw this.handleError(error);
@@ -117,28 +117,6 @@ export class PaystackService {
             return response.data;
         } catch (error) {
             throw this.handleError(error);
-        }
-    }
-
-    // Create a new subscription plan
-    static async createPlanV2(
-        payload: Required<Pick<PlanPayload, "name" | "amount" | "interval">> & Partial<PlanPayload>
-    ): Promise<CreatedPaystackPlanSuccessResponse> {
-        try {
-            const response = await this.axiosInstance.post("/plan", payload);
-            return response.data;
-        } catch (error: any) {
-            throw new Error(error?.response?.data?.message || "Failed to create plan");
-        }
-    }
-
-    // Update an existing subscription plan by plan_code
-    static async updatePlanV2(planCode: string, payload: Partial<PlanPayload>): Promise<any> {
-        try {
-            const response = await this.axiosInstance.put(`/plan/${planCode}`, payload);
-            return response.data;
-        } catch (error: any) {
-            throw new Error(error?.response?.data?.message || "Failed to update plan");
         }
     }
 
@@ -355,7 +333,7 @@ export class PaystackService {
 
     // Convert from naira to kobo
     static nairaToKobo(amountInNaira: number): number {
-        return Math.round(amountInNaira * 100);
+        return amountInNaira * 100;
     }
 
     // Generate unique reference
@@ -363,23 +341,6 @@ export class PaystackService {
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 15);
         return `${prefix}_${timestamp}_${randomString}`.toUpperCase();
-    }
-
-    static getSubscriptionStartDate(
-        nextPaymentDate: string,
-        billingCycle: PlanInterval
-    ): Date {
-        const parsedDate = parseISO(nextPaymentDate)
-
-        if (billingCycle === "monthly") {
-            return subMonths(parsedDate, 1)
-        }
-
-        if (billingCycle === "annual") {
-            return subYears(parsedDate, 1)
-        }
-
-        throw new Error("Invalid billing cycle")
     }
 
     static getNextBillingDate(
@@ -392,13 +353,12 @@ export class PaystackService {
             return addMonths(date, 1)
         }
 
-        if (billingCycle === "annual") {
+        if (billingCycle === "annually") {
             return addYears(date, 1)
         }
 
         throw new Error("Invalid billing cycle")
     }
-
 
     // Handle Paystack errors
     private static handleError(error: any): Error {
@@ -409,74 +369,6 @@ export class PaystackService {
             return new Error('Network error: Unable to reach Paystack API');
         } else {
             return new Error(`Request error: ${error.message}`);
-        }
-    }
-
-    // ============================================================================
-    // GYM-SPECIFIC BUSINESS LOGIC
-    // ============================================================================
-
-    static async processRegistrationWithSubscription(data: {
-        customerEmail: string;
-        customerName: string;
-        planAmount: number;
-        registrationFee: number;
-        planCode: string;
-        metadata?: Record<string, any>;
-    }): Promise<{
-        paymentUrl: string;
-        reference: string;
-        totalAmount: number;
-    }> {
-        try {
-            const totalAmount = data.planAmount + data.registrationFee;
-            const reference = this.generateReference('REG');
-
-            const transaction = await this.initializeTransaction({
-                email: data.customerEmail,
-                amount: totalAmount,
-                reference,
-                metadata: {
-                    type: 'registration_with_subscription',
-                    planCode: data.planCode,
-                    planAmount: data.planAmount,
-                    registrationFee: data.registrationFee,
-                    customerName: data.customerName,
-                    ...data.metadata,
-                },
-            });
-
-            return {
-                paymentUrl: transaction.data.authorization_url,
-                reference: transaction.data.reference,
-                totalAmount,
-            };
-        } catch (error) {
-            throw this.handleError(error);
-        }
-    }
-
-    static async processSubscriptionRenewal(data: {
-        customerCode: string;
-        subscriptionCode: string;
-        amount: number;
-        metadata?: Record<string, any>;
-    }): Promise<any> {
-        try {
-            const reference = this.generateReference('RENEW');
-
-            return await this.initializeTransaction({
-                email: '', // Will be filled from customer data
-                amount: data.amount,
-                reference,
-                metadata: {
-                    type: 'subscription_renewal',
-                    subscriptionCode: data.subscriptionCode,
-                    ...data.metadata,
-                },
-            });
-        } catch (error) {
-            throw this.handleError(error);
         }
     }
 }

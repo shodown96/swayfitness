@@ -113,7 +113,7 @@ export default function UserDetailModal({
                 {selectedAccount.subscription ? (
                   <div className="space-y-2 text-sm">
                     <div><span className="text-gray-600">Plan:</span> {selectedAccount.subscription.plan.name}</div>
-                    <div><span className="text-gray-600">Price:</span> {formatCurrency(Number(selectedAccount.subscription.plan.price))}/{selectedAccount.subscription.plan.interval}</div>
+                    <div><span className="text-gray-600">Price:</span> {formatCurrency(Number(selectedAccount.subscription.plan.amount))}/{selectedAccount.subscription.plan.interval}</div>
                     <div><span className="text-gray-600">Next Billing:</span> {selectedAccount.subscription.nextBillingDate ? (new Date(selectedAccount.subscription.nextBillingDate).toLocaleDateString()) : 'N/A'}</div>
                   </div>
                 ) : null}

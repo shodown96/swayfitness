@@ -35,7 +35,7 @@ export default function AdminsPage() {
     superAdmins: 0,
     activeAdmins: 0,
   })
-  const { setSelectedAccount, openInviteModalOpen, openEditAdminModalOpen } = useAdminStore()
+  const { openInviteModalOpen, openEditAdminModalOpen } = useAdminStore()
 
   const onActionComplete = async () => {
     const { data } = await AdminsService.getAll()

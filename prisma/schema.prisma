@@ -62,9 +62,9 @@ model Account {
 model Plan {
   id          String       @id @default(cuid())
   name        String
-  apiId       String?
+  apiId       String?      @unique
   description String
-  price       Float
+  amount      Float @default(0)
   oldPrice    Float?
   interval    PlanInterval
   features    String[]
@@ -222,8 +222,13 @@ enum Gender {
 }
 
 enum PlanInterval {
+  hourly
+  daily
+  weekly
   monthly
-  annual
+  quarterly
+  biannually
+  annually
 }
 
 enum PlanStatus {

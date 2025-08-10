@@ -80,7 +80,7 @@ export default function PlansPage() {
                   <div className="mb-4">
                     {plan.oldPrice && <p className="text-sm text-gray-500 line-through">{plan.oldPrice}</p>}
                     <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold text-slate-800">{formatCurrency(plan.price)}</span>
+                      <span className="text-4xl font-bold text-slate-800">{formatCurrency(plan.amount)}</span>
                       {/* <span className="text-gray-600 ml-1">{plan.period}</span> */}
                     </div>
                     {plan.oldPrice && (

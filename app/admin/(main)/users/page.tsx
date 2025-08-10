@@ -2,13 +2,13 @@
 
 import EditUserModal from "@/components/admin/edit-user-modal"
 import UserDetailModal from "@/components/admin/user-detail-modal"
+import { Select } from "@/components/custom/Select"
 import TableSkeleton from "@/components/custom/TableSkeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -25,7 +25,7 @@ import { useAdminStore } from "@/lib/stores/adminStore"
 import { delayDebounceFn } from "@/lib/utils"
 import { FullAccount } from "@/types/account"
 import { FullPlan } from "@/types/plan"
-import { ChevronLeft, ChevronRight, Download, Edit, Eye, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Edit, Eye, Search } from 'lucide-react'
 import { useEffect, useState } from "react"
 
 export default function UsersPage() {
@@ -149,28 +149,30 @@ export default function UsersPage() {
                 />
               </div>
             </div>
-            <Select value={query.status} onValueChange={value => setQuery({ status: value })}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={query.plan} onValueChange={value => setQuery({ plan: value })}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Plans</SelectItem>
-                {plans.length ? plans.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                )) : null}
-              </SelectContent>
-            </Select>
+             <Select
+              value={query.status}
+              onChange={value => setQuery({ status: value })}
+              placeholder="Status"
+              containerClass="w-40"
+              options={[
+                { value: "all", label: "All Status" },
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+                { value: "suspended", label: "Suspended" },
+              ]}
+            />
+             <Select
+              value={query.plan}
+              onChange={value => setQuery({ plan: value })}
+              placeholder="All Plans"
+              containerClass="w-40"
+              options={[
+                { value: "all", label: "All Plans" },
+                ...(plans.length ? plans.map(v => (
+                  { value: v.id, label: v.name }
+                )) : [])
+              ]}
+            />
           </div>
         </CardContent>
       </Card>

@@ -20,7 +20,7 @@ export interface Member {
   plan: {
     id: string
     name: string
-    price: number
+    amount: number
     interval: string
     status: 'active' | 'expired' | 'suspended'
   }
@@ -78,7 +78,7 @@ export const dummyMembers: Member[] = [
     plan: {
       id: 'premium-monthly',
       name: 'Premium Monthly',
-      price: 25000,
+      amount: 25000,
       interval: 'month',
       status: 'active'
     },
@@ -98,7 +98,7 @@ export const dummyMembers: Member[] = [
     plan: {
       id: 'elite-monthly',
       name: 'Elite Monthly',
-      price: 35000,
+      amount: 35000,
       interval: 'month',
       status: 'active'
     },
@@ -118,7 +118,7 @@ export const dummyMembers: Member[] = [
     plan: {
       id: 'basic-monthly',
       name: 'Basic Monthly',
-      price: 15000,
+      amount: 15000,
       interval: 'month',
       status: 'expired'
     },
@@ -139,7 +139,7 @@ export const dummyMembers: Member[] = [
     plan: {
       id: ['basic-monthly', 'premium-monthly', 'elite-monthly'][Math.floor(Math.random() * 3)],
       name: ['Basic Monthly', 'Premium Monthly', 'Elite Monthly'][Math.floor(Math.random() * 3)],
-      price: [15000, 25000, 35000][Math.floor(Math.random() * 3)],
+      amount: [15000, 25000, 35000][Math.floor(Math.random() * 3)],
       interval: 'month',
       status: ['active', 'expired', 'suspended'][Math.floor(Math.random() * 3)] as 'active' | 'expired' | 'suspended'
     },

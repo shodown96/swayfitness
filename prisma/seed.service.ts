@@ -1,3 +1,4 @@
+import PaystackService from '@/lib/services/paystack.service';
 import { faker } from '@faker-js/faker';
 import {
     AccountRole,
@@ -157,13 +158,13 @@ export class SeedingService {
     static async seedPlan(data: {
         name: string;
         description: string;
-        price: number;
+        amount: number;
         interval: PlanInterval;
         features: string[];
         status?: PlanStatus;
         category?: string;
         code?: string;
-        apiId?:string
+        apiId?: string
     }) {
         return await SeedingService.prisma.plan.create({
             data: {
@@ -176,21 +177,21 @@ export class SeedingService {
 
     static async seedBasicPlans() {
         const plans = [
-            {
-                name: 'Basic Monthly',
-                description: 'Access to gym equipment and basic facilities',
-                price: 10000,
-                code: 'PLN_jc9cguop9t0cwej',
-                interval: PlanInterval.monthly,
-                features: ['Gym equipment access', 'Locker room', 'Basic support'],
-                category: 'Basic',
-                status: PlanStatus.active,
-                apiId: '2630204'
-            },
+            // {
+            //     name: 'Basic Monthly',
+            //     description: 'Access to gym equipment and basic facilities',
+            //     amount: 10000,
+            //     code: 'PLN_jc9cguop9t0cwej',
+            //     interval: PlanInterval.monthly,
+            //     features: ['Gym equipment access', 'Locker room', 'Basic support'],
+            //     category: 'Basic',
+            //     status: PlanStatus.active,
+            //     apiId: '2630204'
+            // },
             {
                 name: 'Premium Monthly',
                 description: 'Full access with personal training sessions',
-                price: 25000,
+                amount: 25000,
                 interval: PlanInterval.monthly,
                 features: ['Gym equipment access', 'Locker room', 'Personal training', 'Group classes', 'Priority support'],
                 category: 'Premium',
@@ -199,7 +200,7 @@ export class SeedingService {
             {
                 name: 'Elite Monthly',
                 description: 'Complete access with premium amenities',
-                price: 35000,
+                amount: 35000,
                 interval: PlanInterval.monthly,
                 features: ['All Premium features', 'Sauna access', 'Nutrition consultation', '24/7 access', 'Guest passes'],
                 category: 'Elite',
@@ -208,8 +209,8 @@ export class SeedingService {
             {
                 name: 'Basic Annual',
                 description: 'Annual basic membership with discount',
-                price: 150000,
-                interval: PlanInterval.annual,
+                amount: 150000,
+                interval: PlanInterval.annually,
                 features: ['Gym equipment access', 'Locker room', 'Basic support', '2 months free'],
                 category: 'Basic',
                 status: PlanStatus.inactive
@@ -217,8 +218,8 @@ export class SeedingService {
             {
                 name: 'Premium Annual',
                 description: 'Annual premium membership with discount',
-                price: 250000,
-                interval: PlanInterval.annual,
+                amount: 250000,
+                interval: PlanInterval.annually,
                 features: ['All Premium Monthly features', '2 months free', 'Free merchandise'],
                 category: 'Premium',
                 status: PlanStatus.inactive
@@ -226,8 +227,8 @@ export class SeedingService {
             {
                 name: 'Elite Annual',
                 description: 'Annual elite membership with maximum benefits',
-                price: 350000,
-                interval: PlanInterval.annual,
+                amount: 350000,
+                interval: PlanInterval.annually,
                 features: ['All Elite Monthly features', '2 months free', 'VIP lounge access', 'Quarterly health checkup'],
                 category: 'Elite',
                 status: PlanStatus.inactive
@@ -236,8 +237,20 @@ export class SeedingService {
 
         const createdPlans = [];
         for (const plan of plans) {
-            const created = await SeedingService.seedPlan(plan);
-            createdPlans.push(created);
+            const apiCreated = await PaystackService.createPlan({
+                name: plan.name,
+                amount: plan.amount,
+                interval: plan.interval,
+                description: plan.description,
+            })
+            if (apiCreated.status) {
+                const created = await SeedingService.seedPlan({
+                    ...plan,
+                    apiId: String(apiCreated.data.id),
+                    code: apiCreated.data.plan_code
+                });
+                createdPlans.push(created);
+            }
         }
 
         return createdPlans;
@@ -292,7 +305,7 @@ export class SeedingService {
             accountId,
             planId,
             status: SubscriptionStatus.active,
-            amount: Number(plan.price),
+            amount: Number(plan.amount),
         });
     }
 
@@ -503,7 +516,7 @@ export class SeedingService {
             await SeedingService.seedRegistrationTransaction({
                 accountId: member.id,
                 subscriptionId: subscription.id,
-                planAmount: Number(plan.price),
+                planAmount: Number(plan.amount),
                 registrationFee: Number(process.env.NEXT_PUBLIC_REGISTRATION_FEE),
             });
         }

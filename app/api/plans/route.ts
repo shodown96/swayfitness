@@ -1,11 +1,12 @@
+import { checkAuth } from "@/actions/auth/check-auth"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
+import PaystackService from "@/lib/services/paystack.service"
 import { PlanStatus } from "@prisma/client"
 import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
-
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("search")?.toLowerCase()
   const interval = searchParams.get("interval")
@@ -46,13 +47,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  await new Promise((resolve) => setTimeout(resolve, 800))
-
   try {
-    const body = await request.json()
-    const { name, description, price, interval, features, status } = body
 
-    if (!name || !description || !price || !interval || !features) {
+    const { user } = await checkAuth(true)
+    const body = await request.json()
+    const { name, description, amount, interval, features, status } = body
+
+    if (!name || !description || !amount || !interval || !features) {
       return constructResponse({
         statusCode: 400,
         message: ERROR_MESSAGES.BadRequestError,
@@ -70,11 +71,27 @@ export async function POST(request: NextRequest) {
       })
     }
 
+
+    const apiCreated = await PaystackService.createPlan({
+      name,
+      amount: amount * 100,
+      interval,
+      description
+    })
+
+    if (!apiCreated.status) {
+      return constructResponse({
+        statusCode: 400,
+        message: ERROR_MESSAGES.BadRequestError,
+      })
+    }
+
     const plan = await prisma.plan.create({
       data: {
         name,
+        apiId: String(apiCreated.data.id),
         description,
-        price: Number(price),
+        amount: Number(amount),
         interval,
         features: features.filter((f: string) => f.trim() !== ""),
         status: status || "active",
@@ -88,8 +105,8 @@ export async function POST(request: NextRequest) {
     })
   } catch {
     return constructResponse({
-      statusCode: 400,
-      message: ERROR_MESSAGES.BadRequestError,
+      statusCode: 500,
+      message: ERROR_MESSAGES.InternalServerError,
     })
   }
 }

@@ -1,15 +1,15 @@
+import { checkAuth } from "@/actions/auth/check-auth"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
-import { AccountStatus, TransactionType } from "@prisma/client"
+import { SubscriptionStatus, TransactionType } from "@prisma/client"
 import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
+  const { user } = await checkAuth(true)
   const [activeSubscriptions, expiredSubscriptions, suspendedSubscriptions, totalRevenue] = await Promise.all([
-    prisma.account.count({ where: { status: AccountStatus.active } }),
-    prisma.account.count({ where: { status: AccountStatus.inactive } }),
-    prisma.account.count({ where: { status: AccountStatus.suspended } }),
+    prisma.subscription.count({ where: { status: SubscriptionStatus.active } }),
+    prisma.subscription.count({ where: { status: SubscriptionStatus.expired } }),
+    prisma.subscription.count({ where: { status: SubscriptionStatus.suspended } }),
     prisma.transaction.aggregate({ _sum: { totalAmount: true }, where: { type: { not: TransactionType.refund } } }),
   ])
 

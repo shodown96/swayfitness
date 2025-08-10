@@ -3,14 +3,14 @@ import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { APIRouteIDParams } from "@/types/common"
+import { checkAuth } from "@/actions/auth/check-auth"
 
 export async function POST(
   request: NextRequest,
   { params }: APIRouteIDParams
 ){
-  await new Promise((resolve) => setTimeout(resolve, 800))
-
   try {
+    const { user } = await checkAuth(true)
     const body = await request.json()
     const { reason } = body
 
