@@ -6,12 +6,19 @@ import { checkAuth } from "@/actions/auth/check-auth"
 
 export async function GET(request: NextRequest) {
   const { user } = await checkAuth(true)
+  if (user?.role !== 'superadmin') {
+    return constructResponse({
+      statusCode: 401,
+      message: "Only super admins have access to this resource",
+    })
+  }
   const { searchParams } = new URL(request.url)
   const search = searchParams.get("search") || ""
   const status = searchParams.get("status") || "all"
   const planId = searchParams.get("planId") || "all"
   const page = parseInt(searchParams.get("page") || "1")
   const limit = parseInt(searchParams.get("limit") || "10")
+
 
   if (!page || !limit || page < 1 || limit < 1) {
     return constructResponse({

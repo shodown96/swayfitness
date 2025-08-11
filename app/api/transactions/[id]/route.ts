@@ -12,6 +12,12 @@ export async function GET(
   try {
 
     const { user } = await checkAuth(true)
+    if (user?.role !== 'superadmin') {
+      return constructResponse({
+        statusCode: 401,
+        message: "Only super admins have access to this resource",
+      })
+    }
     const transaction = await prisma.transaction.findUnique({
       where: { id: (await params).id },
     })

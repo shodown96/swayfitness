@@ -6,6 +6,12 @@ import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
   const { user } = await checkAuth(true)
+  if (user?.role !== 'superadmin') {
+    return constructResponse({
+      statusCode: 401,
+      message: "Only super admins have access to this resource",
+    })
+  }
   const [activeSubscriptions, expiredSubscriptions, suspendedSubscriptions, totalRevenue] = await Promise.all([
     prisma.subscription.count({ where: { status: SubscriptionStatus.active } }),
     prisma.subscription.count({ where: { status: SubscriptionStatus.expired } }),

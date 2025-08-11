@@ -8,7 +8,7 @@ import { FullAccount } from "@/types/account"
 import { useFormik } from 'formik'
 import { toast } from "sonner"
 import { Input } from "../custom/Input"
-import { Calendar, Mail, Phone, Save, User } from "lucide-react"
+import { Calendar, Mail, MapPin, Phone, Save, User } from "lucide-react"
 import { Select } from "../custom/Select"
 import { useAdminStore } from "@/lib/stores/adminStore"
 import { useEffect } from "react"
@@ -45,6 +45,7 @@ export default function EditUserModal({
             email: "",
             phone: "",
             dob: "",
+            address: "",
             gender: "male",
             emergencyContactName: "",
             emergencyContactPhone: "",
@@ -68,12 +69,13 @@ export default function EditUserModal({
             setValues({
                 name: selectedAccount.name,
                 email: selectedAccount.email,
-                phone: String(selectedAccount.phone),
+                phone: selectedAccount.phone || "",
+                address: selectedAccount.address || "",
                 dob: selectedAccount.dob ? new Date(selectedAccount.dob).toISOString().split("T")[0] : "",
                 gender: selectedAccount.gender as Gender,
-                emergencyContactName: String(selectedAccount.emergencyContactName),
-                emergencyContactPhone: String(selectedAccount.emergencyContactPhone),
-                emergencyContactRelationship: String(selectedAccount.emergencyContactRelationship),
+                emergencyContactName: selectedAccount.emergencyContactName || "",
+                emergencyContactPhone: selectedAccount.emergencyContactPhone || "",
+                emergencyContactRelationship: selectedAccount.emergencyContactRelationship || "",
             })
         }
     }, [selectedAccount, isEditUserModalOpened])
@@ -205,6 +207,19 @@ export default function EditUserModal({
                             error={errors.emergencyContactRelationship}
                             touched={touched.emergencyContactRelationship}
                             label="Relationship"
+                        />
+
+                        <Input
+                            id="address"
+                            name="address"
+                            onBlur={handleBlur}
+                            onChange={handleChange}
+                            placeholder="Address"
+                            value={values.address}
+                            error={errors.address}
+                            touched={touched.address}
+                            leftIcon={MapPin}
+                            label="Address"
                         />
                     </div>
 

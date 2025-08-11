@@ -1,30 +1,50 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Input } from "@/components/custom/Input"; // Custom Input component
+import { InputPassword } from "@/components/custom/InputPassword";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Save, Upload, Shield, Eye, EyeOff, Bell, Lock, Activity } from 'lucide-react'
-import { type AdminUser } from "@/lib/dumps/admin-data"
+import { Switch } from "@/components/ui/switch"
+import { useAuthStore } from "@/lib/stores/authStore"
+import { AccountRole } from "@prisma/client"
+import { useFormik } from "formik"
+import { Activity, Bell, Eye, EyeOff, Lock, Mail, Save, Shield, Upload, User } from 'lucide-react'
+import { useState } from "react"
+import { toast } from "sonner"
+import { z } from "zod"
+import { toFormikValidationSchema } from "zod-formik-adapter"
+
+// Zod validation schemas
+const profileSchema = z.object({
+  name: z.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must be less than 50 characters"),
+  email: z.string()
+    .email("Invalid email address")
+    .min(1, "Email is required"),
+})
+
+const passwordSchema = z.object({
+  currentPassword: z.string()
+    .min(1, "Current password is required"),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number"),
+  confirmPassword: z.string()
+    .min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords must match",
+  path: ["confirmPassword"],
+})
 
 export default function AdminProfilePage() {
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
+  const { user } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setSaving] = useState(false)
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  })
+
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     memberUpdates: true,
@@ -32,77 +52,68 @@ export default function AdminProfilePage() {
     systemAlerts: false
   })
 
-  useEffect(() => {
-    const storedAdmin = localStorage.getItem('gym_admin')
-    if (storedAdmin) {
-      const admin = JSON.parse(storedAdmin)
-      setAdminUser(admin)
-      setFormData({
-        name: admin.name,
-        email: admin.email,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      })
-    }
-  }, [])
+  // Profile form with Formik + Zod
+  const profileForm = useFormik({
+    initialValues: {
+      name: user?.name || "",
+      email: user?.email || "",
+    },
+    validationSchema: toFormikValidationSchema(profileSchema),
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
 
-  const handleSave = async () => {
-    setSaving(true)
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      if (adminUser) {
-        const updatedAdmin = {
-          ...adminUser,
-          name: formData.name,
-          email: formData.email
-        }
-        
-        localStorage.setItem('gym_admin', JSON.stringify(updatedAdmin))
-        setAdminUser(updatedAdmin)
+        // Implement actual API call here
+        console.log("Profile update:", values)
+
         setIsEditing(false)
-        alert("Profile updated successfully!")
+        toast.success("Profile updated successfully!")
+      } catch (error) {
+        toast.error("Error updating profile")
+      } finally {
+        setSubmitting(false)
       }
-    } catch (error) {
-      alert("Error updating profile")
-    } finally {
-      setSaving(false)
     }
-  }
+  })
 
-  const handlePasswordChange = async () => {
-    if (formData.newPassword !== formData.confirmPassword) {
-      alert("New passwords don't match")
-      return
-    }
-    
-    if (formData.newPassword.length < 8) {
-      alert("Password must be at least 8 characters")
-      return
-    }
+  // Password change form with Formik + Zod
+  const passwordForm = useFormik({
+    initialValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    },
+    validationSchema: toFormikValidationSchema(passwordSchema),
+    onSubmit: async (values, { setSubmitting, resetForm }) => {
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
 
-    setSaving(true)
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setFormData({
-        ...formData,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      })
-      
-      alert("Password changed successfully!")
-    } catch (error) {
-      alert("Error changing password")
-    } finally {
-      setSaving(false)
+        // Implement actual API call here
+        console.log("Password change:", {
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword
+        })
+
+        resetForm()
+        toast.success("Password changed successfully!")
+      } catch (error) {
+        toast.error("Error changing password")
+      } finally {
+        setSubmitting(false)
+      }
     }
+  })
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    profileForm.resetForm({
+      values: {
+        name: user?.name || "",
+        email: user?.email || "",
+      }
+    })
   }
 
   const recentActivities = [
@@ -113,16 +124,7 @@ export default function AdminProfilePage() {
     { action: 'Added new admin', time: '3 days ago', ip: '192.168.1.1' },
   ]
 
-  if (!adminUser) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    )
-  }
+  if (!user) return null;
 
   return (
     <div className="space-y-6">
@@ -144,87 +146,88 @@ export default function AdminProfilePage() {
                 <Button
                   variant="outline"
                   onClick={() => setIsEditing(!isEditing)}
+                  type="button"
                 >
                   {isEditing ? 'Cancel' : 'Edit Profile'}
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center space-x-6">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage  />
-                  <AvatarFallback className="bg-blue-600 text-white text-2xl">
-                    {adminUser.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <Button variant="outline" className="mb-2">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Photo
-                  </Button>
-                  <p className="text-sm text-gray-500">
-                    JPG, PNG or GIF. Max size 2MB.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
+              <form onSubmit={profileForm.handleSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
                   <Input
                     id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    name="name"
+                    onBlur={profileForm.handleBlur}
+                    onChange={profileForm.handleChange}
+                    placeholder="Enter your full name"
+                    value={profileForm.values.name}
+                    error={profileForm.errors.name}
+                    touched={profileForm.touched.name}
+                    leftIcon={User}
+                    label="Full Name"
                     disabled={!isEditing}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
+
                   <Input
                     id="email"
+                    name="email"
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onBlur={profileForm.handleBlur}
+                    onChange={profileForm.handleChange}
+                    placeholder="Enter your email"
+                    value={profileForm.values.email}
+                    error={profileForm.errors.email}
+                    touched={profileForm.touched.email}
+                    leftIcon={Mail}
+                    label="Email Address"
                     disabled={!isEditing}
                   />
                 </div>
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Role</Label>
-                  <div className="mt-1">
-                    <Badge className={adminUser.role === 'Super Admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
-                      <Shield className="w-3 h-3 mr-1" />
-                      {adminUser.role}
-                    </Badge>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Role</Label>
+                    <div className="mt-1">
+                      <Badge className={user.role === AccountRole.superadmin ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
+                        <Shield className="w-3 h-3 mr-1" />
+                        {user.role}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Account Created</Label>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <Label>Account Created</Label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {new Date(adminUser.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
 
-              {isEditing && (
-                <div className="flex justify-end">
-                  <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
+                {isEditing && (
+                  <div className="flex justify-end space-x-3">
+                    <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={!profileForm.isValid || profileForm.isSubmitting}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      {profileForm.isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </form>
             </CardContent>
           </Card>
 
@@ -236,62 +239,69 @@ export default function AdminProfilePage() {
                 Change Password
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="currentPassword">Current Password</Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={formData.currentPassword}
-                    onChange={(e) => setFormData({...formData, currentPassword: e.target.value})}
-                    placeholder="Enter current password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                  >
-                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+            <CardContent>
+              <form onSubmit={passwordForm.handleSubmit} className="space-y-4">
+                <InputPassword
+                  id="currentPassword"
+                  name="currentPassword"
+                  onBlur={passwordForm.handleBlur}
+                  onChange={passwordForm.handleChange}
+                  placeholder="Enter current password"
+                  value={passwordForm.values.currentPassword}
+                  error={passwordForm.errors.currentPassword}
+                  touched={passwordForm.touched.currentPassword}
+                  leftIcon={Lock}
+                  label="Current Password"
+                />
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="newPassword"
-                      type={showNewPassword ? "text" : "password"}
-                      value={formData.newPassword}
-                      onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
-                      placeholder="Enter new password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
+                <div className="grid md:grid-cols-2 gap-4">
+                  <InputPassword
+                    id="newPassword"
+                    name="newPassword"
+                    onBlur={passwordForm.handleBlur}
+                    onChange={passwordForm.handleChange}
+                    placeholder="Enter new password"
+                    value={passwordForm.values.newPassword}
+                    error={passwordForm.errors.newPassword}
+                    touched={passwordForm.touched.newPassword}
+                    leftIcon={Lock}
+                    label="New Password"
+                  />
+
+                  <InputPassword
                     id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    name="confirmPassword"
+                    onBlur={passwordForm.handleBlur}
+                    onChange={passwordForm.handleChange}
                     placeholder="Confirm new password"
+                    value={passwordForm.values.confirmPassword}
+                    error={passwordForm.errors.confirmPassword}
+                    touched={passwordForm.touched.confirmPassword}
+                    leftIcon={Lock}
+                    label="Confirm New Password"
                   />
                 </div>
-              </div>
 
-              <Button onClick={handlePasswordChange} disabled={isSaving}>
-                Update Password
-              </Button>
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={!passwordForm.isValid || passwordForm.isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {passwordForm.isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 mr-2" />
+                        Update Password
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
 
@@ -311,7 +321,7 @@ export default function AdminProfilePage() {
                 </div>
                 <Switch
                   checked={notifications.emailNotifications}
-                  onCheckedChange={(checked) => setNotifications({...notifications, emailNotifications: checked})}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, emailNotifications: checked })}
                 />
               </div>
               <Separator />
@@ -322,7 +332,7 @@ export default function AdminProfilePage() {
                 </div>
                 <Switch
                   checked={notifications.memberUpdates}
-                  onCheckedChange={(checked) => setNotifications({...notifications, memberUpdates: checked})}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, memberUpdates: checked })}
                 />
               </div>
               <Separator />
@@ -333,7 +343,7 @@ export default function AdminProfilePage() {
                 </div>
                 <Switch
                   checked={notifications.paymentAlerts}
-                  onCheckedChange={(checked) => setNotifications({...notifications, paymentAlerts: checked})}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, paymentAlerts: checked })}
                 />
               </div>
               <Separator />
@@ -344,7 +354,7 @@ export default function AdminProfilePage() {
                 </div>
                 <Switch
                   checked={notifications.systemAlerts}
-                  onCheckedChange={(checked) => setNotifications({...notifications, systemAlerts: checked})}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, systemAlerts: checked })}
                 />
               </div>
             </CardContent>
@@ -385,7 +395,7 @@ export default function AdminProfilePage() {
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Last Login:</span>
                 <span className="text-sm font-medium">
-                  {adminUser.lastLogin ? new Date(adminUser.lastLogin).toLocaleDateString() : 'Never'}
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                 </span>
               </div>
               <div className="flex justify-between">

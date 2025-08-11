@@ -34,15 +34,17 @@ export const useAuthStore = create(
         set({ user: null }),
       signOut: async () => {
         set({ user: null });
-        const result = await mainClient.get(API_ENDPOINTS.Auth.SignOut)
-        if (result.success) {
-          if (window.location.href.includes("admin")) {
-            window.location.replace(PATHS.AdminSignIn)
-          }
-          window.location.replace(PATHS.SignIn)
+        if (window.location.href.includes("admin")) {
+          window.location.replace(PATHS.AdminSignIn)
         }
-
-
+        window.location.replace(PATHS.SignIn)
+        // const result = await mainClient.get(API_ENDPOINTS.Auth.SignOut)
+        // if (result.success) {
+        //   if (window.location.href.includes("admin")) {
+        //     window.location.replace(PATHS.AdminSignIn)
+        //   }
+        //   window.location.replace(PATHS.SignIn)
+        // }
       }
     }),
     {

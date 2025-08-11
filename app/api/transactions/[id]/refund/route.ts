@@ -8,9 +8,15 @@ import { checkAuth } from "@/actions/auth/check-auth"
 export async function POST(
   request: NextRequest,
   { params }: APIRouteIDParams
-){
+) {
   try {
     const { user } = await checkAuth(true)
+    if (user?.role !== 'superadmin') {
+      return constructResponse({
+        statusCode: 401,
+        message: "Only super admins have access to this resource",
+      })
+    }
     const body = await request.json()
     const { reason } = body
 

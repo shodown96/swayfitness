@@ -389,3 +389,12 @@ export default PaystackService;
 //   plan: planCode, // This plan only contains the monthly amount
 //   start_date: nextMonth // Start next month
 // });
+
+// fetchSubscriptionByPlanCodeNCustomer
+// generateManageLink
+// createPlan
+// updatePlan
+// deletePlan
+// verifyTransaction
+// getNextBillingDate
+// chargeAuthorization

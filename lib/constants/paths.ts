@@ -39,6 +39,7 @@ export const PATHS = {
   MemberInfo: "/member-info",
 
   DashboardProfile: "/dashboard/profile",
+  DashboardBilling: "/dashboard/billing",
   Dashboard: "/dashboard",
 
   SignIn: "/sign-in",

@@ -49,7 +49,7 @@ export function daysUntilNextBilling(nextBillingDate: string | Date): number {
   const msPerDay = 1000 * 60 * 60 * 24
   const diffInMs = target.getTime() - today.getTime()
   const diffInDays = Math.floor(diffInMs / msPerDay)
-  return diffInDays
+  return Math.abs(diffInDays)
 }
 
 export const delayDebounceFn = (callBack: () => void) =>

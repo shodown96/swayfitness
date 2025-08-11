@@ -24,7 +24,7 @@ export default function RootLayout({
         <AppGuard>
           {children}
         </AppGuard>
-        <Toaster position="top-right"/>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   )

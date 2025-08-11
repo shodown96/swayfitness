@@ -112,6 +112,7 @@ const ProfileUpdateParams = z.object({
     .string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Email") })
     .email({ message: VALIDATION_MESSAGES.EmailInvalid }),
   phone: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Phone") }),
+  address: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Address") }),
   dob: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Date of Birth") }),
   gender: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Gender") }),
   emergencyContactName: z.string({
@@ -133,6 +134,7 @@ const EditUserParams = z.object({
     .string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Email") })
     .email({ message: VALIDATION_MESSAGES.EmailInvalid }),
   phone: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Phone") }),
+  address: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Address") }),
   dob: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Date of Birth") }),
   gender: z.string({ required_error: formatString(VALIDATION_MESSAGES.Required, "Gender") }),
   emergencyContactName: z.string({

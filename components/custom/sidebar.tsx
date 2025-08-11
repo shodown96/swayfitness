@@ -1,12 +1,23 @@
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PATHS } from "@/lib/constants/paths"
 import { useAuthStore } from "@/lib/stores/authStore"
-import { CreditCard, LogOut, Settings, User } from 'lucide-react'
+import { cn } from "@/lib/utils"
+import { CreditCard, LogOut, User } from 'lucide-react'
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 export default function DashboardSidebar() {
+    const pathname = usePathname()
     const { user, signOut } = useAuthStore()
+
+    const routes = [
+        { name: 'Dashboard', icon: User, path: PATHS.Dashboard },
+        { name: 'Profile', icon: User, path: PATHS.DashboardProfile },
+        { name: 'Plans & Billing', icon: CreditCard, path: PATHS.DashboardBilling },
+        // { name: 'Settings', icon: Settings, path: PATHS.DashboardProfile },
+    ]
     if (!user) return null;
     return (
         <>
@@ -33,34 +44,19 @@ export default function DashboardSidebar() {
 
                     {/* Navigation */}
                     <nav className="space-y-2">
-                        <a
-                            href="/dashboard"
-                            className="flex items-center space-x-3 px-3 py-2 bg-orange-50 text-orange-600 rounded-lg"
-                        >
-                            <User className="w-5 h-5" />
-                            <span>Dashboard</span>
-                        </a>
-                        <a
-                            href="/dashboard/profile"
-                            className="flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
-                        >
-                            <User className="w-5 h-5" />
-                            <span>My Profile</span>
-                        </a>
-                        {/* <a
-                            href="#"
-                            className="flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
-                        >
-                            <CreditCard className="w-5 h-5" />
-                            <span>Membership</span>
-                        </a>
-                        <a
-                            href="#"
-                            className="flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
-                        >
-                            <Settings className="w-5 h-5" />
-                            <span>Settings</span>
-                        </a> */}
+                        {routes.map(route => (
+                            <a
+                                key={route.path}
+                                href={route.path}
+                                className={cn(
+                                    "flex items-center space-x-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg",
+                                    pathname === route.path ? 'bg-orange-50 text-orange-600' : ''
+                                )}
+                            >
+                                <route.icon className="w-5 h-5" />
+                                <span>{route.name}</span>
+                            </a>
+                        ))}
                         <button
                             onClick={signOut}
                             className="flex items-center space-x-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg w-full text-left"

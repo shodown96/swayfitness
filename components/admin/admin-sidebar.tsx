@@ -43,6 +43,10 @@ const navigation = [
     href: "/admin/plans",
     icon: Calendar,
   },
+]
+
+const superadminNavigation = [
+  ...navigation,
   {
     name: "Subscriptions",
     href: "/admin/subscriptions",
@@ -53,12 +57,15 @@ const navigation = [
     href: "/admin/transactions",
     icon: Receipt,
   },
+
 ]
 
 export default function AdminSidebar() {
   const pathname = usePathname()
   const { user, signOut } = useAuthStore()
   const { collapsed, setCollapsed } = useSidebarStore()
+
+  const navigationRoutes = user?.role === AccountRole.superadmin ? superadminNavigation : navigation
 
   // Save collapsed state to localStorage
   const toggleCollapsed = () => {
@@ -90,7 +97,7 @@ export default function AdminSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2">
-          {navigation.map((item) => {
+          {navigationRoutes.map((item) => {
             const isActive = pathname === item.href
             const NavItem = (
               <Link

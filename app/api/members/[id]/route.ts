@@ -62,6 +62,7 @@ export async function PUT(
       dob,
       gender,
       status,
+      address,
       emergencyContactName,
       emergencyContactPhone,
       emergencyContactRelationship
@@ -112,6 +113,7 @@ export async function PUT(
         ...(dob && { dob: new Date(dob) }),
         ...(gender && { gender }),
         ...(status && { status }),
+        ...(address && { address }),
         ...(emergencyContactName && { emergencyContactName }),
         ...(emergencyContactPhone && { emergencyContactPhone }),
         ...(emergencyContactRelationship && { emergencyContactRelationship }),

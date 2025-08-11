@@ -1,11 +1,11 @@
 "use client"
 
-import { useFormik } from "formik"
-import { User, Mail, Phone, Calendar, Save } from "lucide-react"
 import { Input } from "@/components/custom/Input"
 import { Select } from "@/components/custom/Select"
-import { ProfileUpdateParamsSchema, type ProfileUpdateParamsType } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
+import { ProfileUpdateParamsSchema, type ProfileUpdateParamsType } from "@/lib/validations"
+import { useFormik } from "formik"
+import { Calendar, Mail, MapPin, Phone, Save, User } from "lucide-react"
 
 interface ProfileUpdateFormProps {
   onFormSubmit: (values: ProfileUpdateParamsType) => void
@@ -146,6 +146,19 @@ export default function ProfileUpdateForm({ onFormSubmit, initialValues, isLoadi
           error={errors.emergencyContactRelationship}
           touched={touched.emergencyContactRelationship}
           label="Relationship"
+        />
+
+        <Input
+          id="address"
+          name="address"
+          onBlur={handleBlur}
+          onChange={handleChange}
+          placeholder="Address"
+          value={values.address}
+          error={errors.address}
+          touched={touched.address}
+          leftIcon={MapPin}
+          label="Address"
         />
       </div>
 

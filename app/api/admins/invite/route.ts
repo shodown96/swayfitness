@@ -11,7 +11,7 @@ import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    await checkAuth(true)
+    const { user } = await checkAuth(true)
     const body = await request.json()
     const {
       name,
@@ -24,6 +24,13 @@ export async function POST(request: NextRequest) {
       return constructResponse({
         statusCode: 400,
         message: "Missing required fields",
+      })
+    }
+
+    if (user?.role !== 'superadmin') {
+      return constructResponse({
+        statusCode: 401,
+        message: "Only super admins can invite others",
       })
     }
 

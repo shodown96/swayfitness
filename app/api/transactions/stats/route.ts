@@ -5,6 +5,12 @@ import { type NextRequest } from "next/server"
 
 export async function GET(request: NextRequest) {
   const { user } = await checkAuth(true)
+  if (user?.role !== 'superadmin') {
+    return constructResponse({
+      statusCode: 401,
+      message: "Only super admins have access to this resource",
+    })
+  }
   const [totalTransactions, successfulTransactions, failedTransactions, pendingTransactions, refundedTransactions, totalRevenueData] = await Promise.all([
     prisma.transaction.count(),
     prisma.transaction.count({ where: { status: "success" } }),

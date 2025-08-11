@@ -38,6 +38,7 @@ export async function PUT(
       phone,
       dob,
       gender,
+      address,
       emergencyContactName,
       emergencyContactPhone,
       emergencyContactRelationship, }: ProfileUpdateParamsType = body
@@ -78,6 +79,7 @@ export async function PUT(
         ...(phone && { phone }),
         ...(dob && { dob: new Date(dob) }),
         ...(gender && { gender }),
+        ...(address && { address }),
         ...(emergencyContactName && { emergencyContactName }),
         ...(emergencyContactName && { emergencyContactName }),
         ...(emergencyContactPhone && { emergencyContactPhone }),

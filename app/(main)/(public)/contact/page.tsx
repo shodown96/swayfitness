@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ export default function ContactPage() {
     console.log("Form submitted:", formData)
     // Reset form
     setFormData({ name: "", email: "", phone: "", message: "" })
-    alert("Thank you for your message! We'll get back to you soon.")
+    toast.success("Thank you for your message! We'll get back to you soon.")
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
