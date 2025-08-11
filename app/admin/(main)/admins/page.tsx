@@ -106,13 +106,15 @@ export default function AdminsPage() {
           <h1 className="text-3xl font-bold text-gray-800">Admin Management</h1>
           <p className="text-gray-600 mt-1">Manage administrator accounts and permissions</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={openInviteModalOpen}>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Invite Admin
-        </Button>
-        <Button onClick={handleRefresh} variant={'secondary'} disabled={refreshing}>
-          Refresh admins
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button onClick={openInviteModalOpen}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Invite Admin
+          </Button>
+          <Button onClick={handleRefresh} variant={'secondary'} disabled={refreshing}>
+            Refresh admins
+          </Button>
+        </div>
       </div>
 
       {/* Admin Stats */}

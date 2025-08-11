@@ -32,13 +32,13 @@ class AxiosClient {
   }
 
   private _setInterceptors() {
-    this.instance.interceptors.request.use((config) => {
-      const state = JSON.parse(sessionStorage.getItem("auth-storage") || "{}");
-      if (state?.state?.tokens?.accessToken) {
-        config.headers.Authorization = `Token ${state.state.tokens.accessToken}`;
-      }
-      return config;
-    });
+    // this.instance.interceptors.request.use((config) => {
+    //   const state = JSON.parse(sessionStorage.getItem("auth-storage") || "{}");
+    //   if (state?.state?.tokens?.accessToken) {
+    //     config.headers.Authorization = `Token ${state.state.tokens.accessToken}`;
+    //   }
+    //   return config;
+    // });
 
     this.instance.interceptors.response.use(
       (response: AxiosResponse): AxiosResponse<ApiResponse> => {

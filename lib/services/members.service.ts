@@ -49,4 +49,8 @@ export class MembersService {
   static async getStats() {
     return mainClient.get(API_ENDPOINTS.Members.Stats)
   }
+
+  static async exportCSV() {
+    return mainClient.get<FullAccount>(API_ENDPOINTS.Members.Export)
+  }
 }

@@ -43,11 +43,15 @@ export class AdminsService {
     return mainClient.put<FullAccount>(API_ENDPOINTS.Admins.ById(id), adminData)
   }
 
+  static async updateMe(adminData: Partial<Account> & { currentPassword?: string }) {
+    return mainClient.put<FullAccount>(API_ENDPOINTS.Admins.Me, adminData)
+  }
+
   static async delete(id: string) {
     return mainClient.delete(API_ENDPOINTS.Admins.ById(id))
   }
 
-  static async invite(values:InviteAdminParamsType) {
+  static async invite(values: InviteAdminParamsType) {
     return mainClient.post(API_ENDPOINTS.Admins.Invite, values)
   }
 

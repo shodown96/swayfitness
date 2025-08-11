@@ -18,21 +18,24 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import useAPIQuery from "@/hooks/use-api-query"
-import { getStatusColor } from "@/lib/dumps/admin-data"
+import { API_ENDPOINTS } from "@/lib/constants/api"
 import { MembersService } from "@/lib/services/members.service"
 import { PlansService } from "@/lib/services/plans.service"
 import { useAdminStore } from "@/lib/stores/adminStore"
-import { delayDebounceFn } from "@/lib/utils"
+import { delayDebounceFn, getStatusColor } from "@/lib/utils"
 import { FullAccount } from "@/types/account"
 import { FullPlan } from "@/types/plan"
-import { ChevronLeft, ChevronRight, Edit, Eye, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Edit, Eye, Search } from 'lucide-react'
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
-export default function UsersPage() {
+
+export default function MembersPage() {
   const [members, setMembers] = useState<FullAccount[]>([])
   const [plans, setPlans] = useState<FullPlan[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [fetching, setFetching] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const { setQuery, query, pagination, setPagination } = useAPIQuery()
   const {
     selectedAccount,
@@ -96,8 +99,46 @@ export default function UsersPage() {
     fetchPlans()
   }, [])
 
-  const handleExport = () => {
-    alert("Export functionality would be implemented here")
+  const handleExport = async () => {
+    try {
+      setExporting(true)
+      const response = await fetch(API_ENDPOINTS.Members.Export, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        toast.error(error.error || 'Export failed')
+        setExporting(false)
+      }
+
+      // Get the CSV content
+      const csvContent = await response.text()
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+
+      // Create download link
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+
+      // Cleanup
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      setExporting(false)
+    } catch (error) {
+      toast.error('Export failed')
+      setExporting(false)
+
+    }
   }
 
   const onActionComplete = async (user: FullAccount) => {
@@ -114,17 +155,20 @@ export default function UsersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Users</h1>
-          <p className="text-gray-600 mt-1">Manage gym members and their subscriptions</p>
+          <h1 className="text-3xl font-bold text-gray-800">Members</h1>
+          <p className="text-gray-600 mt-1">Manage gym members</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* 
-          <Button onClick={handleExport} variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
 
-          <Button onClick={handleExport} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            disabled={exporting}>
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? 'Exporting' : 'Export CSV'}
+          </Button>
+          {/* 
+          <Button onClick={handleExport}>
             <UserPlus className="w-4 h-4 mr-2" />
             Create user
           </Button> */}
@@ -149,7 +193,7 @@ export default function UsersPage() {
                 />
               </div>
             </div>
-             <Select
+            <Select
               value={query.status}
               onChange={value => setQuery({ status: value })}
               placeholder="Status"
@@ -161,7 +205,7 @@ export default function UsersPage() {
                 { value: "suspended", label: "Suspended" },
               ]}
             />
-             <Select
+            <Select
               value={query.plan}
               onChange={value => setQuery({ plan: value })}
               placeholder="All Plans"

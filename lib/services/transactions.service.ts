@@ -22,8 +22,8 @@ export class TransactionsService {
     return mainClient.get<FullTransaction>(API_ENDPOINTS.Transactions.ById(id))
   }
 
-  static async refund(id: string, reason?: string) {
-    return mainClient.post(API_ENDPOINTS.Transactions.Refund(id), { reason })
+  static async refund(id: string, values: { amount: number, refundReason?: string }) {
+    return mainClient.post(API_ENDPOINTS.Transactions.Refund(id), values)
   }
 
   static async getStats() {

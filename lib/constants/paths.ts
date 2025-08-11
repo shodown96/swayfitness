@@ -30,7 +30,7 @@ export const PATHS = {
   AdminDashboard: "/admin/dashboard",
   AdminTransactions: "/admin/transactions",
   AdminProfile: "/admin/profile",
-  AdminUsers: "/admin/users",
+  AdminMembers: "/admin/members",
   AdminSignIn: "/admin/sign-in",
 
   Contact: "/contact",

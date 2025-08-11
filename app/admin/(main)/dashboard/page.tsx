@@ -1,15 +1,16 @@
 "use client"
 
 import { SendNotificationDialog } from "@/components/admin/send-notification-modal"
+import TextLoader from "@/components/custom/TextLoader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatCurrency } from "@/lib/dumps/admin-data"
 import { AnalyticsService, DashboardMetrics } from "@/lib/services/analytics.service"
+import { formatCurrency } from "@/lib/utils"
 import { FullPlan } from "@/types/plan"
 import { Bell, CreditCard, DollarSign, Download, UserPlus, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from "react"
-import { useReactToPrint } from "react-to-print";
+import { useReactToPrint } from "react-to-print"
 
 const recentActivities = [
   { id: 1, action: 'New member registration', member: 'John Doe', time: '2 hours ago' },
@@ -20,9 +21,21 @@ const recentActivities = [
 ]
 
 export default function AdminDashboardPage() {
-  const [metrics, setMetrics] = useState<DashboardMetrics>()
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalMembers: 0,
+    activeMembers: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    newMembersThisMonth: 0,
+    memberGrowthRate: 0,
+    revenueGrowthRate: 0,
+    averageRevenuePerMember: 0,
+    activeSubscriptions: 0,
+
+  })
   const [plans, setPlans] = useState<FullPlan[]>([])
   const [openNotificationModal, setOpenNotificationModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   const exportPDF = useReactToPrint({
@@ -51,107 +64,114 @@ export default function AdminDashboardPage() {
       console.error("Failed to fetch metrics", err)
     }
   }
+
+  const fetchData = async () => {
+    setLoading(true)
+    await fetchMetrics()
+    await fetchPlan()
+    setLoading(false)
+  }
+
   useEffect(() => {
-    fetchMetrics()
-    fetchPlan()
+    fetchData()
   }, [])
 
   return (
-    <div className="space-y-6" ref={dashboardRef}>
-      {/* Page Header */}
-      <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening at your gym.</p>
+    <TextLoader loading={loading}>
+      <div className="space-y-6" ref={dashboardRef}>
+        {/* Page Header */}
+        <div className="flex items-center justify-between print:hidden">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+            <p className="text-gray-600 mt-1">Welcome back! Here's what's happening at your gym.</p>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={exportPDF}>
+              <Download className="w-4 h-4 mr-2" />
+              Export Reports
+            </Button>
+            <Button
+              onClick={() => setOpenNotificationModal(true)}>
+              <Bell className="w-4 h-4 mr-2" />
+              Send Announcement
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline" onClick={exportPDF}>
-            <Download className="w-4 h-4 mr-2" />
-            Export Reports
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => setOpenNotificationModal(true)}>
-            <Bell className="w-4 h-4 mr-2" />
-            Send Announcement
-          </Button>
-        </div>
-      </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Members</p>
-                <p className="text-3xl font-bold text-gray-800">{metrics?.totalMembers || 0}</p>
-                {/* <p className="text-sm text-green-600 mt-1">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Members</p>
+                  <p className="text-3xl font-bold text-gray-800">{metrics?.totalMembers || 0}</p>
+                  {/* <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   +12% from last month
                 </p> */}
+                </div>
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
               </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
-                <p className="text-3xl font-bold text-gray-800">{metrics?.activeSubscriptions || 0}</p>
-                {/* <p className="text-sm text-green-600 mt-1">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
+                  <p className="text-3xl font-bold text-gray-800">{metrics?.activeSubscriptions || 0}</p>
+                  {/* <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   +8% from last month
                 </p> */}
+                </div>
+                <div className="bg-green-100 p-3 rounded-full">
+                  <CreditCard className="w-6 h-6 text-green-600" />
+                </div>
               </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <CreditCard className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                <p className="text-3xl font-bold text-gray-800">{formatCurrency(metrics?.monthlyRevenue || 0)}</p>
-                {/* <p className="text-sm text-green-600 mt-1">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
+                  <p className="text-3xl font-bold text-gray-800">{formatCurrency(metrics?.monthlyRevenue || 0)}</p>
+                  {/* <p className="text-sm text-green-600 mt-1">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   +15% from last month
                 </p> */}
+                </div>
+                <div className="bg-yellow-100 p-3 rounded-full">
+                  <DollarSign className="w-6 h-6 text-yellow-600" />
+                </div>
               </div>
-              <div className="bg-yellow-100 p-3 rounded-full">
-                <DollarSign className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">New Members</p>
-                <p className="text-3xl font-bold text-gray-800">{metrics?.newMembersThisMonth || 0}</p>
-                <p className="text-sm text-gray-500 mt-1">This month</p>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">New Members</p>
+                  <p className="text-3xl font-bold text-gray-800">{metrics?.newMembersThisMonth || 0}</p>
+                  <p className="text-sm text-gray-500 mt-1">This month</p>
+                </div>
+                <div className="bg-purple-100 p-3 rounded-full">
+                  <UserPlus className="w-6 h-6 text-purple-600" />
+                </div>
               </div>
-              <div className="bg-purple-100 p-3 rounded-full">
-                <UserPlus className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Plan Distribution */}
-        {metrics ? (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Plan Distribution */}
           <Card>
             <CardHeader>
               <CardTitle>Plan Distribution</CardTitle>
@@ -174,31 +194,31 @@ export default function AdminDashboardPage() {
               </div>
             </CardContent>
           </Card>
-        ) : null}
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity (TODO)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="font-medium text-gray-800">{activity.action}</p>
-                    <p className="text-sm text-gray-600">{activity.member}</p>
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity (TODO)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="font-medium text-gray-800">{activity.action}</p>
+                      <p className="text-sm text-gray-600">{activity.member}</p>
+                    </div>
+                    <span className="text-sm text-gray-500">{activity.time}</span>
                   </div>
-                  <span className="text-sm text-gray-500">{activity.time}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <SendNotificationDialog
+          open={openNotificationModal}
+          setOpen={setOpenNotificationModal} />
       </div>
-      <SendNotificationDialog
-        open={openNotificationModal}
-        setOpen={setOpenNotificationModal} />
-    </div>
+    </TextLoader>
   )
 }

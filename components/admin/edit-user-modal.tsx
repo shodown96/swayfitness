@@ -224,7 +224,7 @@ export default function EditUserModal({
                     </div>
 
                     <div className="flex justify-end">
-                        <Button type="submit" disabled={!isValid || isSubmitting} className="bg-blue-600 hover:bg-blue-700 px-8">
+                        <Button type="submit" disabled={!isValid || isSubmitting} className="px-8">
                             {isSubmitting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

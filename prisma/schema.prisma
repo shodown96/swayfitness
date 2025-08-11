@@ -64,7 +64,7 @@ model Plan {
   name        String
   apiId       String?      @unique
   description String
-  amount      Float @default(0)
+  amount      Float        @default(0)
   oldPrice    Float?
   interval    PlanInterval
   features    String[]
@@ -152,6 +152,7 @@ model Transaction {
   gateway   String  @default("paystack")
 
   // Refund details
+  refundApiId String?
   refundReason String?
   refundDate   DateTime?
 

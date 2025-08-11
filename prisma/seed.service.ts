@@ -670,3 +670,35 @@ export class SeedingService {
         await SeedingService.prisma.$disconnect();
     }
 }
+
+
+// for (const account of accounts) {
+//     await prisma.account.create({
+//         data: {
+//             ...account as any,
+//             lastLogin: null,
+//             dob: account.dob ? new Date(account.dob) : null,
+//             createdAt: new Date(account.createdAt),
+//             updatedAt: new Date(account.updatedAt)
+//         }
+//     })
+// } for (const subscription of subscriptions) {
+//     await prisma.subscription.create({
+//         data: {
+//             ...subscription as any,
+//             startDate: new Date(subscription.startDate),
+//             nextBillingDate: new Date(subscription.nextBillingDate),
+//             createdAt: new Date(subscription.createdAt),
+//             updatedAt: new Date(subscription.updatedAt)
+//         }
+//     })
+// }
+// for (const transaction of transactions) {
+//     await prisma.transaction.create({
+//         data: {
+//             ...transaction as any,
+//             createdAt: new Date(transaction.createdAt),
+//             updatedAt: new Date(transaction.updatedAt)
+//         }
+//     })
+// }

@@ -1,38 +1,53 @@
 "use client"
 
-import type React from "react"
 
+import { Input } from "@/components/custom/Input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { MapPin, Phone, Mail, Clock } from "lucide-react"
-import { useState } from "react"
+import { mainClient } from "@/lib/axios"
+import { API_ENDPOINTS } from "@/lib/constants/api"
+import { ContactParamsSchema, ContactParamsType } from "@/lib/validations"
+import { useFormik } from 'formik'
+import { Clock, Mail, MapPin, Phone, Send, User } from "lucide-react"
 import { toast } from "sonner"
 
+
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
+  const submitContactForm = async (values: ContactParamsType) => {
+    try {
+      const result = await mainClient.post(API_ENDPOINTS.Contact, values)
+      if (result.success) {
+        toast.success("Thank you for your message! We'll get back to you soon.")
+        formik.resetForm()
+      }
+    } catch (error) {
+      toast.error("Failed to send message. Please try again.")
+    }
+  }
+
+  const formik = useFormik<ContactParamsType>({
+    initialValues: {
+      name: "",
+      email: "",
+      phone: "",
+      message: "",
+    },
+    onSubmit: submitContactForm,
+    validateOnBlur: true,
+    validationSchema: ContactParamsSchema,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission here
-    console.log("Form submitted:", formData)
-    // Reset form
-    setFormData({ name: "", email: "", phone: "", message: "" })
-    toast.success("Thank you for your message! We'll get back to you soon.")
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
+  const {
+    handleBlur,
+    handleChange,
+    handleSubmit,
+    values,
+    errors,
+    touched,
+    isValid,
+    isSubmitting
+  } = formik
 
   const contactInfo = [
     {
@@ -118,52 +133,46 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name *
-                    </label>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Enter your full name"
-                      className="w-full"
-                    />
-                  </div>
+                  <Input
+                    id="name"
+                    name="name"
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    value={values.name}
+                    error={errors.name}
+                    touched={touched.name}
+                    leftIcon={User}
+                    label="Full Name"
+                  />
 
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address *
-                    </label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Enter your email address"
-                      className="w-full"
-                    />
-                  </div>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    placeholder="Enter your email address"
+                    value={values.email}
+                    error={errors.email}
+                    touched={touched.email}
+                    leftIcon={Mail}
+                    label="Email Address"
+                  />
 
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="Enter your phone number"
-                      className="w-full"
-                    />
-                  </div>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    placeholder="Enter your phone number"
+                    value={values.phone}
+                    error={errors.phone}
+                    touched={touched.phone}
+                    leftIcon={Phone}
+                    label="Phone Number"
+                  />
 
                   <div>
                     <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
@@ -172,17 +181,35 @@ export default function ContactPage() {
                     <Textarea
                       id="message"
                       name="message"
-                      required
-                      value={formData.message}
+                      value={values.message}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="Tell us how we can help you..."
                       rows={6}
-                      className="w-full"
+                      className={`w-full ${errors.message && touched.message ? 'border-red-500' : ''}`}
                     />
+                    {errors.message && touched.message && (
+                      <p className="text-red-500 text-sm mt-1">{errors.message}</p>
+                    )}
                   </div>
 
-                  <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3" size="lg">
-                    Send Message
+                  <Button
+                    type="submit"
+                    disabled={!isValid || isSubmitting}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3"
+                    size="lg"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Message
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>

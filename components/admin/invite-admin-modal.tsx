@@ -114,7 +114,7 @@ export default function InviteAdminModal({ onActionComplete }: {
                         <Button variant="outline" onClick={() => setIsInviteModalOpen(false)}>
                             Cancel
                         </Button>
-                        <Button className="bg-blue-600 hover:bg-blue-700"
+                        <Button
                             disabled={!isValid || isSubmitting}
                             onClick={() => handleSubmit()}>
                             <Mail className="w-4 h-4 mr-2" />

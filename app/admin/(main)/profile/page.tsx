@@ -2,44 +2,22 @@
 
 import { Input } from "@/components/custom/Input"; // Custom Input component
 import { InputPassword } from "@/components/custom/InputPassword";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
-import { useAuthStore } from "@/lib/stores/authStore"
-import { AccountRole } from "@prisma/client"
-import { useFormik } from "formik"
-import { Activity, Bell, Eye, EyeOff, Lock, Mail, Save, Shield, Upload, User } from 'lucide-react'
-import { useState } from "react"
-import { toast } from "sonner"
-import { z } from "zod"
-import { toFormikValidationSchema } from "zod-formik-adapter"
-
-// Zod validation schemas
-const profileSchema = z.object({
-  name: z.string()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters"),
-  email: z.string()
-    .email("Invalid email address")
-    .min(1, "Email is required"),
-})
-
-const passwordSchema = z.object({
-  currentPassword: z.string()
-    .min(1, "Current password is required"),
-  newPassword: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number"),
-  confirmPassword: z.string()
-    .min(1, "Please confirm your password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords must match",
-  path: ["confirmPassword"],
-})
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { ERROR_MESSAGES } from "@/lib/constants/messages";
+import { AdminsService } from "@/lib/services/admins.service";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { AdminProfileParamsSchema, AdminProfileParamsType, PasswordParamsSchema, PasswordParamsType } from "@/lib/validations";
+import { AccountRole } from "@prisma/client";
+import { isAxiosError } from "axios";
+import { useFormik } from "formik";
+import { Activity, Bell, Lock, Mail, Phone, Save, Shield, User } from 'lucide-react';
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function AdminProfilePage() {
   const { user } = useAuthStore()
@@ -53,22 +31,23 @@ export default function AdminProfilePage() {
   })
 
   // Profile form with Formik + Zod
-  const profileForm = useFormik({
+  const profileForm = useFormik<AdminProfileParamsType>({
     initialValues: {
       name: user?.name || "",
       email: user?.email || "",
+      phone: user?.phone || "",
     },
-    validationSchema: toFormikValidationSchema(profileSchema),
+    validationSchema: AdminProfileParamsSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
         // Implement actual API call here
-        console.log("Profile update:", values)
-
-        setIsEditing(false)
-        toast.success("Profile updated successfully!")
+        const data = await AdminsService.updateMe(values)
+        if (data.success) {
+          setIsEditing(false)
+          toast.success("Profile updated successfully!")
+        } else {
+          toast.error(data.message || ERROR_MESSAGES.BadRequestError)
+        }
       } catch (error) {
         toast.error("Error updating profile")
       } finally {
@@ -78,28 +57,35 @@ export default function AdminProfilePage() {
   })
 
   // Password change form with Formik + Zod
-  const passwordForm = useFormik({
+  const passwordForm = useFormik<PasswordParamsType>({
     initialValues: {
       currentPassword: "",
       newPassword: "",
       confirmPassword: ""
     },
-    validationSchema: toFormikValidationSchema(passwordSchema),
+    validationSchema: PasswordParamsSchema,
     onSubmit: async (values, { setSubmitting, resetForm }) => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
         // Implement actual API call here
-        console.log("Password change:", {
+        const data = await AdminsService.updateMe({
           currentPassword: values.currentPassword,
-          newPassword: values.newPassword
+          password: values.newPassword
         })
+        if (data.success) {
+          setIsEditing(false)
+          toast.success("Password updated successfully!")
+        } else {
+          toast.error(data.message || ERROR_MESSAGES.BadRequestError)
+        }
 
         resetForm()
         toast.success("Password changed successfully!")
       } catch (error) {
-        toast.error("Error changing password")
+        if (isAxiosError(error)) {
+          toast.error(error.response?.data.message)
+        } else {
+          toast.error("Error changing password")
+        }
       } finally {
         setSubmitting(false)
       }
@@ -112,6 +98,7 @@ export default function AdminProfilePage() {
       values: {
         name: user?.name || "",
         email: user?.email || "",
+        phone: user?.phone || "",
       }
     })
   }
@@ -138,7 +125,7 @@ export default function AdminProfilePage() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Profile Information */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -183,6 +170,19 @@ export default function AdminProfilePage() {
                     label="Email Address"
                     disabled={!isEditing}
                   />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    onBlur={profileForm.handleBlur}
+                    onChange={profileForm.handleChange}
+                    placeholder="Enter your phone number"
+                    value={profileForm.values.phone}
+                    error={profileForm.errors.phone}
+                    touched={profileForm.touched.phone}
+                    leftIcon={Phone}
+                    label="Phone Number"
+                    disabled={!isEditing}
+                  />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -210,9 +210,7 @@ export default function AdminProfilePage() {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={!profileForm.isValid || profileForm.isSubmitting}
-                      className="bg-orange-500 hover:bg-orange-600"
-                    >
+                      disabled={!profileForm.isValid || profileForm.isSubmitting}>
                       {profileForm.isSubmitting ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -285,9 +283,7 @@ export default function AdminProfilePage() {
                 <div className="flex justify-end">
                   <Button
                     type="submit"
-                    disabled={!passwordForm.isValid || passwordForm.isSubmitting}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
+                    disabled={!passwordForm.isValid || passwordForm.isSubmitting}>
                     {passwordForm.isSubmitting ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -362,7 +358,7 @@ export default function AdminProfilePage() {
         </div>
 
         {/* Activity Log */}
-        <div>
+        {/* <div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -385,30 +381,7 @@ export default function AdminProfilePage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Account Stats */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Account Statistics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Last Login:</span>
-                <span className="text-sm font-medium">
-                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Total Sessions:</span>
-                <span className="text-sm font-medium">127</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Actions Performed:</span>
-                <span className="text-sm font-medium">1,234</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        </div> */}
       </div>
     </div>
   )

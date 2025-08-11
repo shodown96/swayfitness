@@ -69,6 +69,7 @@ export function SendNotificationDialog({
                 </DialogHeader>
                 <div className="flex flex-col gap-4 py-2">
                     <Input
+                        disabled
                         id="title"
                         label="Title"
                         placeholder="Enter your title"
@@ -79,6 +80,7 @@ export function SendNotificationDialog({
                         touched={touched.title}
                     />
                     <Textarea
+                        disabled
                         id="message"
                         label="Message"
                         placeholder="Enter your message"
@@ -94,10 +96,12 @@ export function SendNotificationDialog({
                         Cancel
                     </Button>
                     <Button
+                        disabled
                         onClick={() => handleSubmit()}
-                        disabled={!isValid || isSubmitting}
-                        className="bg-blue-600 hover:bg-blue-700">
-                        {isSubmitting ? "Sending..." : "Send"}
+                        // disabled={!isValid || isSubmitting}
+                        >
+                        {/* {isSubmitting ? "Sending..." : "Send"} */}
+                        Coming soon
                     </Button>
                 </DialogFooter>
             </DialogContent>

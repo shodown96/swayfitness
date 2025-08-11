@@ -2,6 +2,9 @@ import {
     ChargedAuthorizationResponse,
     CreatedPaystackPlanSuccessResponse,
     CreatedPaystackSubscription,
+    CreateRefundResponse,
+    GetRefundResponse,
+    GetSubscriptionResponse,
     PaystackCustomer,
     PaystackPlan,
     PaystackSubscription,
@@ -11,11 +14,13 @@ import {
     PlanDeletedResponse,
     SubscriptionLinkResponse,
     SubscriptionsResponse,
-    UpdatedPlanResponse
+    UpdatedPlanResponse,
+    UpdatedSubscriptionResponse
 } from '@/types/paystack';
-import { PlanInterval } from '@prisma/client';
+import { PlanInterval, Subscription } from '@prisma/client';
 import axios, { AxiosResponse } from 'axios';
 import { addMonths, addYears, parseISO } from "date-fns";
+import { ERROR_MESSAGES } from '../constants/messages';
 
 export class PaystackService {
     static axiosInstance = axios.create({
@@ -193,7 +198,7 @@ export class PaystackService {
         }
     }
 
-    static async getSubscription(subscriptionCode: string): Promise<any> {
+    static async getSubscription(subscriptionCode: string): Promise<GetSubscriptionResponse> {
         try {
             const response: AxiosResponse = await this.axiosInstance.get(`/subscription/${subscriptionCode}`);
             return response.data;
@@ -202,7 +207,7 @@ export class PaystackService {
         }
     }
 
-    static async disableSubscription(subscriptionCode: string, emailToken: string): Promise<any> {
+    static async disableSubscription(subscriptionCode: string, emailToken: string): Promise<UpdatedSubscriptionResponse> {
         try {
             const response: AxiosResponse = await this.axiosInstance.post('/subscription/disable', {
                 code: subscriptionCode,
@@ -214,7 +219,7 @@ export class PaystackService {
         }
     }
 
-    static async enableSubscription(subscriptionCode: string, emailToken: string): Promise<any> {
+    static async enableSubscription(subscriptionCode: string, emailToken: string): Promise<UpdatedSubscriptionResponse> {
         try {
             const response: AxiosResponse = await this.axiosInstance.post('/subscription/enable', {
                 code: subscriptionCode,
@@ -226,13 +231,24 @@ export class PaystackService {
         }
     }
 
-    static async updateSubscription(subscriptionCode: string, updateData: { plan?: string }): Promise<any> {
+    static async updateSubscription(subscription: Subscription, planCode: string): Promise<CreatedPaystackSubscription|null> {
         try {
-            const response: AxiosResponse = await this.axiosInstance.post('/subscription', {
-                code: subscriptionCode,
-                ...updateData,
-            });
-            return response.data;
+            if (subscription.subscriptionCode) {
+                const sub = await this.getSubscription(subscription.subscriptionCode)
+                if (sub.status) {
+                    const result = await this.disableSubscription(subscription.subscriptionCode, sub.data.email_token)
+                    if (result.status) {
+                        const res = await this.createSubscription({
+                            customer: sub.data.customer.customer_code,
+                            plan: planCode,
+                            authorization: sub.data.authorization.authorization_code,
+                            start_date: sub.data.next_payment_date,
+                        })
+                        return res
+                    }
+                }
+            }
+            return null
         } catch (error) {
             throw this.handleError(error);
         }
@@ -265,7 +281,7 @@ export class PaystackService {
     // REFUND MANAGEMENT
     // ============================================================================
 
-    static async createRefund(transactionReference: string, amount?: number, merchantNote?: string): Promise<any> {
+    static async createRefund(transactionReference: string, amount?: number, merchantNote?: string): Promise<CreateRefundResponse> {
         try {
             const refundData: any = {
                 transaction: transactionReference,
@@ -286,7 +302,7 @@ export class PaystackService {
         }
     }
 
-    static async getRefund(refundReference: string): Promise<any> {
+    static async getRefund(refundReference: string): Promise<GetRefundResponse> {
         try {
             const response: AxiosResponse = await this.axiosInstance.get(`/refund/${refundReference}`);
             return response.data;

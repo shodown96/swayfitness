@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -22,7 +23,7 @@ import { SubscriptionsService } from "@/lib/services/subscriptions.service"
 import { useAdminSubscriptionStore } from "@/lib/stores/adminSubStore"
 import { delayDebounceFn, formatCurrency } from "@/lib/utils"
 import { FullPlan, FullSubscription } from "@/types/plan"
-import { AlertCircle, ChevronLeft, ChevronRight, CreditCard, Edit, Pause, Search, Users, X } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, CreditCard, Edit, MoreHorizontal,  Search, Users, X } from 'lucide-react'
 import { useEffect, useState } from "react"
 
 export default function SubscriptionsPage() {
@@ -152,7 +153,7 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* Subscription Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -176,20 +177,6 @@ export default function SubscriptionsPage() {
               </div>
               <div className="bg-red-100 p-3 rounded-full">
                 <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Suspended</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.suspendedSubscriptions}</p>
-              </div>
-              <div className="bg-yellow-100 p-3 rounded-full">
-                <Pause className="w-6 h-6 text-yellow-600" />
               </div>
             </div>
           </CardContent>
@@ -309,32 +296,29 @@ export default function SubscriptionsPage() {
                       <TableCell>{new Date(subscription.startDate).toLocaleDateString()}</TableCell>
                       <TableCell>{subscription.nextBillingDate ? new Date(subscription.nextBillingDate).toLocaleDateString() : '-'}</TableCell>
                       <TableCell>{formatCurrency(subscription.plan.amount)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openModal('modify', subscription)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openModal('suspend', subscription)}
-                            disabled={subscription.status === 'suspended'}
-                          >
-                            <Pause className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openModal('cancel', subscription)}
-                            disabled={subscription.status === 'expired'}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openModal('modify', subscription)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Switch
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => openModal('cancel', subscription)}
+                              className="text-red-600"
+                              disabled={subscription.status === 'expired'}
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              Cancel
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   )))}

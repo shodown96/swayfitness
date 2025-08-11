@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { PATHS } from "@/lib/constants/paths"
 import { useAuthStore } from "@/lib/stores/authStore"
 import { useSidebarStore } from "@/lib/stores/sidebarStore"
 import { cn } from "@/lib/utils"
@@ -25,22 +26,22 @@ import { usePathname } from "next/navigation"
 const navigation = [
   {
     name: "Dashboard",
-    href: "/admin/dashboard",
+    href: PATHS.AdminDashboard,
     icon: LayoutDashboard,
   },
   {
-    name: "Users",
-    href: "/admin/users",
+    name: "Members",
+    href: PATHS.AdminMembers,
     icon: Users,
   },
   {
     name: "Admins",
-    href: "/admin/admins",
+    href: PATHS.AdminAdmins,
     icon: Shield,
   },
   {
     name: "Plans",
-    href: "/admin/plans",
+    href: PATHS.AdminPlans,
     icon: Calendar,
   },
 ]
@@ -49,12 +50,12 @@ const superadminNavigation = [
   ...navigation,
   {
     name: "Subscriptions",
-    href: "/admin/subscriptions",
+    href: PATHS.AdminSubscriptions,
     icon: CreditCard,
   },
   {
     name: "Transactions",
-    href: "/admin/transactions",
+    href: PATHS.AdminTransactions,
     icon: Receipt,
   },
 

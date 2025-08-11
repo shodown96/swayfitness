@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
     Base: "/api/subscriptions",
     Stats: "/api/subscriptions/stats",
     ById: (id: string) => `/api/subscriptions/${id}`,
+    Cancel: (id: string) => `/api/subscriptions/${id}/cancel`,
     Resume: (id: string) => `/api/subscriptions/${id}/resume`,
     Suspend: (id: string) => `/api/subscriptions/${id}/suspend`,
   },
@@ -43,6 +44,7 @@ export const API_ENDPOINTS = {
     Base: "/api/members",
     Me: "/api/members/me",
     Stats: "/api/members/stats",
+    Export: "/api/members/export",
     ById: (id: string) => `/api/members/${id}`,
     Status: (id: string) => `/api/members/${id}/status`,
   },
@@ -50,4 +52,5 @@ export const API_ENDPOINTS = {
     Dashboard: "/api/analytics/dashboard",
     Plans: "/api/analytics/plans",
   },
+  Contact:"/api/contact"
 } as const;

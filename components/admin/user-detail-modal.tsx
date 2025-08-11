@@ -4,9 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { formatCurrency, getStatusColor, } from "@/lib/dumps/admin-data"
 import { MembersService } from "@/lib/services/members.service"
 import { useAdminStore } from "@/lib/stores/adminStore"
+import { formatCurrency, getStatusColor } from "@/lib/utils"
 import { FullAccount } from "@/types/account"
 import { AccountStatus } from "@prisma/client"
 import { toast } from "sonner"
@@ -137,7 +137,7 @@ export default function UserDetailModal({
                   Suspend Member
                 </Button>
               ) : (
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => activateAccount(selectedAccount)}>
+                <Button onClick={() => activateAccount(selectedAccount)}>
                   Activate Member
                 </Button>
               )}

@@ -46,11 +46,11 @@ export class SubscriptionsService {
   }
 
   static async update(id: string, subscriptionData: any) {
-    return mainClient.put<Subscription>(API_ENDPOINTS.Subscriptions.ById(id), subscriptionData)
+    return mainClient.post<Subscription>(API_ENDPOINTS.Subscriptions.ById(id), subscriptionData)
   }
 
-  static async cancel(id: string) {
-    return mainClient.delete(API_ENDPOINTS.Subscriptions.ById(id))
+  static async cancel(id: string, values:any) {
+    return mainClient.post(API_ENDPOINTS.Subscriptions.Cancel(id), values)
   }
 
   static async suspend(id: string) {

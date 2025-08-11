@@ -15,6 +15,7 @@ import { AlertCircle, ArrowRight, CheckCircle, CreditCard, Crown, ExternalLink, 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { SubscriptionsService } from "@/lib/services/subscriptions.service"
 
 interface UserData {
     id: string
@@ -55,14 +56,21 @@ export default function PlansPage() {
     }, [plans.length])
 
     const handlePlanUpgrade = async (newPlan: Plan) => {
+        if (!user?.subscription) return;
         setIsUpgrading(true)
 
         try {
             // Implement this
+            const result = await SubscriptionsService.update(user?.subscription.id, {
+                planId: newPlan.id
+            })
+            if (result.success) {
+                toast.success(`You've successfully switched to ${newPlan.name}. Your next billing will reflect the new plan.`)
+            }
 
-            toast.success("You've successfully switched to ${newPlan.name}. Your next billing will reflect the new plan.")
+
         } catch (error) {
-            toast("There was an error updating your plan. Please try again.")
+            toast.error("There was an error updating your plan. Please try again.")
         } finally {
             setIsUpgrading(false)
         }

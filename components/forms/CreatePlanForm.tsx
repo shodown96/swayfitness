@@ -149,7 +149,7 @@ export default function CreatePlanForm({
       <Button
         type="submit"
         disabled={!formik.isValid || isLoading || features.filter((f) => f.trim()).length === 0}
-        className="w-full bg-blue-600 hover:bg-blue-700"
+        className="w-full"
       >
         {isLoading ? (
           <>

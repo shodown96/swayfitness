@@ -178,6 +178,59 @@ const InviteAdminParams = z.object({
   role: z.string().min(1, "Role is required"),
 })
 
+
+// Zod validation schemas
+const AdminProfileParams = z.object({
+  name: z.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must be less than 50 characters"),
+  email: z.string()
+    .email("Invalid email address")
+    .min(1, "Email is required"),
+  phone: z.string()
+    .min(1, "Phone is required"),
+})
+
+const PasswordParams = z.object({
+  currentPassword: z.string()
+    .min(1, "Current password is required"),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number"),
+  confirmPassword: z.string()
+    .min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords must match",
+  path: ["confirmPassword"],
+})
+
+const ContactParams = z.object({
+  name: z.string()
+    .min(2, 'Name must be at least 2 characters')
+    .min(1, 'Name is required'),
+  email: z.string()
+    .email('Invalid email address')
+    .min(1, 'Email is required'),
+  phone: z.string()
+    .regex(/^[\+]?[0-9\s\-\(\)]*$/, 'Invalid phone number format')
+    .min(10, 'Phone number must be at least 10 digits')
+    .optional()
+    .or(z.literal('')),
+  message: z.string()
+    .min(10, 'Message must be at least 10 characters')
+    .min(1, 'Message is required'),
+})
+
+const RefundFormParams = z.object({
+  reason: z.string().min(1, 'Refund reason is required'),
+  customReason: z.string().optional(),
+  amount: z.number()
+  // amount: z.string()
+  //   .min(1, 'Refund amount is required')
+  //   .refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Must be a valid amount'),
+})
+
+
 // Export schemas and types
 export const SignInParamsSchema = toFormikValidationSchema(SignInParams)
 export const AdminLoginParamsSchema = toFormikValidationSchema(AdminLoginParams)
@@ -190,6 +243,10 @@ export const CreatePlanParamsSchemaV2 = toFormikValidationSchema(CreatePlanParam
 export const SendNotificationParamsSchema = toFormikValidationSchema(SendNotificationParams)
 export const EditAdminParamsSchema = toFormikValidationSchema(EditAdminParams)
 export const InviteAdminParamsSchema = toFormikValidationSchema(InviteAdminParams)
+export const AdminProfileParamsSchema = toFormikValidationSchema(AdminProfileParams)
+export const PasswordParamsSchema = toFormikValidationSchema(PasswordParams)
+export const ContactParamsSchema = toFormikValidationSchema(ContactParams)
+export const RefundFormParamsSchema = toFormikValidationSchema(RefundFormParams)
 
 export type CreatePlanParamsTypeV2 = z.infer<typeof CreatePlanParamsV2> & {
   interval: PlanInterval
@@ -215,3 +272,8 @@ export type EditAdminParamsType = z.infer<typeof EditAdminParams> & {
 export type InviteAdminParamsType = z.infer<typeof InviteAdminParams> & {
   role: AccountRole
 }
+
+export type AdminProfileParamsType = z.infer<typeof AdminProfileParams>
+export type PasswordParamsType = z.infer<typeof PasswordParams>
+export type ContactParamsType = z.infer<typeof ContactParams>
+export type RefundFormParamsType = z.infer<typeof RefundFormParams>

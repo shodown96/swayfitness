@@ -12,10 +12,9 @@ export async function GET(request: NextRequest) {
       message: "Only super admins have access to this resource",
     })
   }
-  const [activeSubscriptions, expiredSubscriptions, suspendedSubscriptions, totalRevenue] = await Promise.all([
+  const [activeSubscriptions, expiredSubscriptions, totalRevenue] = await Promise.all([
     prisma.subscription.count({ where: { status: SubscriptionStatus.active } }),
     prisma.subscription.count({ where: { status: SubscriptionStatus.expired } }),
-    prisma.subscription.count({ where: { status: SubscriptionStatus.suspended } }),
     prisma.transaction.aggregate({ _sum: { totalAmount: true }, where: { type: { not: TransactionType.refund } } }),
   ])
 
@@ -24,7 +23,6 @@ export async function GET(request: NextRequest) {
     data: {
       activeSubscriptions,
       expiredSubscriptions,
-      suspendedSubscriptions,
       totalRevenue: totalRevenue._sum.totalAmount
     },
   })
