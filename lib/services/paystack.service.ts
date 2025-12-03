@@ -20,7 +20,6 @@ import {
 import { PlanInterval, Subscription } from '@prisma/client';
 import axios, { AxiosResponse } from 'axios';
 import { addMonths, addYears, parseISO } from "date-fns";
-import { ERROR_MESSAGES } from '../constants/messages';
 
 export class PaystackService {
     static axiosInstance = axios.create({
@@ -231,7 +230,7 @@ export class PaystackService {
         }
     }
 
-    static async updateSubscription(subscription: Subscription, planCode: string): Promise<CreatedPaystackSubscription|null> {
+    static async updateSubscription(subscription: Subscription, planCode: string): Promise<CreatedPaystackSubscription | null> {
         try {
             if (subscription.subscriptionCode) {
                 const sub = await this.getSubscription(subscription.subscriptionCode)

@@ -201,6 +201,7 @@ export default function AdminDashboardPage() {
               <CardTitle>Recent Activity (TODO)</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="text-xs">Dummy data</div>
               <div className="space-y-4">
                 {recentActivities.map((activity) => (
                   <div key={activity.id} className="flex items-center justify-between py-2">
