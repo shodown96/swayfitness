@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
             <AdminSignInForm formik={formik} isLoading={isLoading} />
 
             <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">Demo credentials: admin@gym.com / admin123</p>
+              {/* <p className="text-xs text-gray-500">Demo credentials: admin@gym.com / admin123</p> */}
             </div>
           </CardContent>
         </Card>

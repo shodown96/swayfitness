@@ -1,5 +1,6 @@
-import { SeedingService } from "./seed.service";
-
+// import { PrismaClient } from "@prisma/client";
+// import { SeedingService } from "./seed.service";
+// import bcrypt from "bcrypt";
 const runScript = async () => {
     // Seed individual items
     // const admin = await SeedingService.seedAdmin({
@@ -8,7 +9,14 @@ const runScript = async () => {
     //     name: 'John Admin'
     // });
 
-    const plans = await SeedingService.seedBasicPlans();
+    // const plans = await SeedingService.seedBasicPlans();
+
+    // const prisma = new PrismaClient();
+    // const password = await bcrypt.hash("", 10)
+    // await prisma.account.update({
+    //     where: { email: "" },
+    //     data: { password }
+    // })
 }
 
 runScript()
