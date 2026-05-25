@@ -9,7 +9,8 @@ const pathKVP = {
     welcome: '/templates/welcome.html',
     otp: '/templates/otp.html',
     newAdmin: '/templates/new-admin.html',
-    changedPassword: '/templates/changed-password.html'
+    changedPassword: '/templates/changed-password.html',
+    notification: '/templates/mass-notification.html',
 }
 
 type PathKVPType = keyof typeof pathKVP

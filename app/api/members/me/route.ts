@@ -39,9 +39,11 @@ export async function PUT(
       dob,
       gender,
       address,
+      avatarUrl,
       emergencyContactName,
       emergencyContactPhone,
-      emergencyContactRelationship, }: ProfileUpdateParamsType = body
+      emergencyContactRelationship,
+    }: ProfileUpdateParamsType = body
 
     const existingMember = await prisma.account.findUnique({
       where: { id: user?.id },
@@ -71,6 +73,7 @@ export async function PUT(
       }
     }
 
+    console.log(avatarUrl)
     const updatedMember = await prisma.account.update({
       where: { id: user?.id },
       data: {
@@ -80,7 +83,7 @@ export async function PUT(
         ...(dob && { dob: new Date(dob) }),
         ...(gender && { gender }),
         ...(address && { address }),
-        ...(emergencyContactName && { emergencyContactName }),
+        ...(avatarUrl && { avatarUrl: avatarUrl }),
         ...(emergencyContactName && { emergencyContactName }),
         ...(emergencyContactPhone && { emergencyContactPhone }),
         ...(emergencyContactRelationship && { emergencyContactRelationship }),

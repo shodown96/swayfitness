@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { constructResponse, paginateItems } from "@/lib/response"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { checkAuth } from "@/actions/auth/check-auth"
+import { AuditService } from "@/lib/services/audit.service"
 
 export async function GET(request: NextRequest) {
   try {
@@ -90,6 +91,15 @@ export async function POST(request: NextRequest) {
         features: features.filter((f: string) => f.trim() !== ""),
         status: status || "active",
       },
+    })
+
+    await AuditService.log({
+      adminId: user!.id,
+      action: "plan_created",
+      targetType: "plan",
+      targetId: plan.id,
+      description: `Plan "${plan.name}" created (${plan.interval}, ₦${plan.amount.toLocaleString()})`,
+      metadata: { name: plan.name, amount: plan.amount, interval: plan.interval },
     })
 
     return constructResponse({

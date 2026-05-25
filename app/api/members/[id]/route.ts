@@ -2,6 +2,7 @@ import { checkAuth } from "@/actions/auth/check-auth"
 import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
+import { AuditService } from "@/lib/services/audit.service"
 import { APIRouteIDParams } from "@/types/common"
 import { AccountRole, AccountStatus } from "@prisma/client"
 import { NextRequest } from "next/server"
@@ -19,7 +20,15 @@ export async function GET(
   { params }: APIRouteIDParams
 ) {
   try {
-    const { user } = await checkAuth(true)
+    await checkAuth(true)
+  } catch {
+    return constructResponse({
+      statusCode: 401,
+      message: "This page is for authorised staff only. Please sign in with a staff account.",
+    })
+  }
+
+  try {
     const member = await prisma.account.findFirst({
       where: {
         id: (await params).id,
@@ -30,21 +39,13 @@ export async function GET(
     })
 
     if (!member) {
-      return constructResponse({
-        statusCode: 404,
-        message: "Member not found",
-      })
+      return constructResponse({ statusCode: 404, message: "Member not found" })
     }
 
-    return constructResponse({
-      statusCode: 200,
-      data: { member },
-    })
+    return constructResponse({ statusCode: 200, data: { member } })
   } catch (error) {
-    return constructResponse({
-      statusCode: 500,
-      message: ERROR_MESSAGES.InternalServerError,
-    })
+    console.error("[members/id GET]", error)
+    return constructResponse({ statusCode: 500, message: ERROR_MESSAGES.InternalServerError })
   }
 }
 
@@ -121,6 +122,21 @@ export async function PUT(
       omit: { password: true }
     })
 
+    const changes: Record<string, unknown> = {}
+    if (name   && name   !== existingMember.name)   changes.name   = name
+    if (email  && email  !== existingMember.email)  changes.email  = email
+    if (phone  && phone  !== existingMember.phone)  changes.phone  = phone
+    if (status && status !== existingMember.status) changes.status = status
+
+    await AuditService.log({
+      adminId: user!.id,
+      action: "member_updated",
+      targetType: "member",
+      targetId: updatedMember.id,
+      description: `Member "${updatedMember.name}" (${updatedMember.email}) updated`,
+      metadata: { changes },
+    })
+
     return constructResponse({
       statusCode: 200,
       message: "Member updated successfully",
@@ -155,6 +171,17 @@ export async function DELETE(
     await prisma.account.delete({
       where: { id: (await params).id },
     })
+
+    if (user) {
+      await AuditService.log({
+        adminId: user.id,
+        action: "member_deleted",
+        targetType: "member",
+        targetId: existingMember.id,
+        description: `Member "${existingMember.name}" (${existingMember.email}) permanently deleted`,
+        metadata: { memberId: existingMember.memberId },
+      })
+    }
 
     return constructResponse({
       statusCode: 200,

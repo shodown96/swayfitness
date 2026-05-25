@@ -6,19 +6,36 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AnalyticsService, DashboardMetrics } from "@/lib/services/analytics.service"
+import { AuditLogEntry, AuditLogsService } from "@/lib/services/audit-logs.service"
 import { formatCurrency } from "@/lib/utils"
 import { FullPlan } from "@/types/plan"
 import { Bell, CreditCard, DollarSign, Download, UserPlus, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from "react"
 import { useReactToPrint } from "react-to-print"
 
-const recentActivities = [
-  { id: 1, action: 'New member registration', member: 'John Doe', time: '2 hours ago' },
-  { id: 2, action: 'Payment received', member: 'Jane Smith', time: '4 hours ago' },
-  { id: 3, action: 'Subscription renewed', member: 'Mike Johnson', time: '6 hours ago' },
-  { id: 4, action: 'Plan upgraded', member: 'Sarah Wilson', time: '8 hours ago' },
-  { id: 5, action: 'New member registration', member: 'David Brown', time: '1 day ago' },
-]
+// Map raw action strings to readable labels
+const ACTION_LABELS: Record<string, string> = {
+  refund_issued:           "Refund issued",
+  subscription_cancelled:  "Subscription cancelled",
+  member_updated:          "Member updated",
+  member_deleted:          "Member deleted",
+  plan_created:            "Plan created",
+  plan_updated:            "Plan updated",
+  plan_deleted:            "Plan deleted",
+  admin_invited:           "Admin invited",
+  notification_sent:       "Notification sent",
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins  = Math.floor(diff / 60_000)
+  const hours = Math.floor(diff / 3_600_000)
+  const days  = Math.floor(diff / 86_400_000)
+  if (mins  < 1)   return "just now"
+  if (mins  < 60)  return `${mins}m ago`
+  if (hours < 24)  return `${hours}h ago`
+  return `${days}d ago`
+}
 
 export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -31,24 +48,22 @@ export default function AdminDashboardPage() {
     revenueGrowthRate: 0,
     averageRevenuePerMember: 0,
     activeSubscriptions: 0,
-
   })
   const [plans, setPlans] = useState<FullPlan[]>([])
-  const [openNotificationModal, setOpenNotificationModal] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const dashboardRef = useRef<HTMLDivElement>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
+  const [openNotificationModal, setOpenNotificationModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const dashboardRef = useRef<HTMLDivElement>(null)
 
   const exportPDF = useReactToPrint({
     contentRef: dashboardRef,
     documentTitle: "Dashboard Report",
-  });
+  })
 
   const fetchMetrics = async () => {
     try {
       const { data } = await AnalyticsService.getDashboardMetrics()
-      if (data) {
-        setMetrics(data)
-      }
+      if (data) setMetrics(data)
     } catch (err) {
       console.error("Failed to fetch metrics", err)
     }
@@ -57,18 +72,24 @@ export default function AdminDashboardPage() {
   const fetchPlan = async () => {
     try {
       const { data } = await AnalyticsService.getPlanAnalytics()
-      if (data) {
-        setPlans(data.plans)
-      }
+      if (data) setPlans(data.plans)
     } catch (err) {
-      console.error("Failed to fetch metrics", err)
+      console.error("Failed to fetch plan analytics", err)
+    }
+  }
+
+  const fetchAuditLogs = async () => {
+    try {
+      const { data } = await AuditLogsService.getRecent(8)
+      if (data) setAuditLogs(data.items)
+    } catch (err) {
+      console.error("Failed to fetch audit logs", err)
     }
   }
 
   const fetchData = async () => {
     setLoading(true)
-    await fetchMetrics()
-    await fetchPlan()
+    await Promise.all([fetchMetrics(), fetchPlan(), fetchAuditLogs()])
     setLoading(false)
   }
 
@@ -186,7 +207,7 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center space-x-2">
                       <span className="text-gray-600">{plan._count.subscriptions} members</span>
                       <Badge variant="secondary">
-                        {Math.round((plan._count.subscriptions / metrics.activeSubscriptions) * 100)}%
+                        {Math.round((plan._count.subscriptions / metrics.activeSubscriptions) * 100)||0}%
                       </Badge>
                     </div>
                   </div>
@@ -198,21 +219,27 @@ export default function AdminDashboardPage() {
           {/* Recent Activity */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity (TODO)</CardTitle>
+              <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-xs">Dummy data</div>
-              <div className="space-y-4">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="font-medium text-gray-800">{activity.action}</p>
-                      <p className="text-sm text-gray-600">{activity.member}</p>
+              {auditLogs.length === 0 ? (
+                <p className="text-sm text-gray-400 py-4 text-center">No admin actions recorded yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="flex items-start justify-between py-2 border-b last:border-0">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <p className="font-medium text-gray-800 text-sm truncate">
+                          {ACTION_LABELS[log.action] ?? log.action}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{log.description}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">by {log.admin.name}</p>
+                      </div>
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{timeAgo(log.createdAt)}</span>
                     </div>
-                    <span className="text-sm text-gray-500">{activity.time}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

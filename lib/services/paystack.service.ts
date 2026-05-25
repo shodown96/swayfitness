@@ -25,7 +25,7 @@ export class PaystackService {
     static axiosInstance = axios.create({
         baseURL: 'https://api.paystack.co',
         headers: {
-            'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY || ""}`,
             'Content-Type': 'application/json',
         },
     });
@@ -264,13 +264,9 @@ export class PaystackService {
 
     static async fetchSubscriptionByPlanCodeNCustomer(planApiId: string, customer: string | number): Promise<SubscriptionsResponse> {
         try {
-            const response = await this.axiosInstance.get(`/subscription?customer=${Number(customer)}&plan=${2630204}`);
-
-            console.log(`/subscription?customer=${Number(customer)}&plan=${planApiId}`, response.data)
+            const response = await this.axiosInstance.get(`/subscription?customer=${Number(customer)}&plan=${planApiId}`);
             return response.data;
         } catch (error: any) {
-            console.log(error.response.request.path)
-            console.log(error.response.data)
             throw new Error(error?.response?.data?.message || "Error fetching subscription");
         }
     }

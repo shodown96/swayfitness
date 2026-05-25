@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { mainClient } from "@/lib/axios"
 import { API_ENDPOINTS } from "@/lib/constants/api"
 import { useAuthStore } from "@/lib/stores/authStore"
+import { formatDateForInput } from "@/lib/utils"
 import { ProfileUpdateParamsType } from "@/lib/validations"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -45,8 +46,9 @@ export default function ProfilePage() {
     email: user.email,
     phone: user.phone || "",
     address: user.address || "",
-    dob: user.dob ? (new Date(user.dob)).toISOString() : "",
+    dob: user.dob ? formatDateForInput(new Date(user.dob)) : "",
     gender: user.gender || "male",
+    avatarUrl: user.avatarUrl || "",
     emergencyContactName: user.emergencyContactName || "",
     emergencyContactPhone: user.emergencyContactPhone || "",
     emergencyContactRelationship: user.emergencyContactRelationship || "",
@@ -54,6 +56,10 @@ export default function ProfilePage() {
 
   return (
     <div>
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Profile</h1>
+        <p className="text-gray-600 text-sm mt-1">Manage your personal information</p>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>

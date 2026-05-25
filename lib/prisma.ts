@@ -1,24 +1,10 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import "dotenv/config";
 
-let _prisma: PrismaClient;
+const connectionString = `${process.env.DATABASE_URL}`;
 
-declare global {
-    var _prisma: PrismaClient | undefined;
-}
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV === "production") {
-    _prisma = new PrismaClient();
-} else {
-    if (!global._prisma) {
-        global._prisma = new PrismaClient();
-    }
-    _prisma = global._prisma;
-}
-
-export const isPrismaError = (
-    error: any
-): error is PrismaClientKnownRequestError =>
-    error instanceof PrismaClientKnownRequestError;
-
-export { _prisma as prisma };
+export { prisma };

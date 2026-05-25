@@ -1,28 +1,39 @@
 "use client"
+import { PlansGridSkeleton } from "@/components/custom/PlanCardSkeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlansService } from "@/lib/services/plans.service"
+import { SettingsService } from "@/lib/services/settings.service"
 import { usePlanStore } from "@/lib/stores/planStore"
 import { formatCurrency } from "@/lib/utils"
 import { Check } from 'lucide-react'
 import Link from "next/link"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export default function PlansPage() {
   const { plans, setPlans, setSelectedPlan, selectedPlan } = usePlanStore()
+  const [plansLoading, setPlansLoading] = useState(!plans.length)
+  const [registrationFee, setRegistrationFee] = useState<number | null>(null)
 
   useEffect(() => {
     const getplans = async () => {
-      const result = await PlansService.getAll()
-      if (result.success && result.data) {
-        setPlans(result.data.items)
+      try {
+        const result = await PlansService.getAll()
+        if (result.success && result.data) {
+          setPlans(result.data.items)
+        }
+      } finally {
+        setPlansLoading(false)
       }
     }
-    if (!plans.length) {
-      getplans()
-    }
-  }, [plans.length])
+    getplans()
+  }, [])
+
+  useEffect(() => {
+    SettingsService.getRegistrationFee().then(setRegistrationFee)
+  }, [])
 
   // const comparisonFeatures = [
   //   { feature: "Gym Equipment Access", basic: true, premium: true, elite: true },
@@ -55,10 +66,15 @@ export default function PlansPage() {
       <section className="py-8 bg-orange-50 border-b">
         <div className="container mx-auto px-4">
           <div className="bg-white p-4 rounded-lg border border-orange-200 text-center">
-            <p className="text-slate-800">
+            <div className="text-slate-800">
               <strong>New Member Registration:</strong> All new members pay a one-time registration fee of{" "}
-              <span className="text-orange-600 font-bold">₦7,500</span> in addition to their first month's payment.
-            </p>
+              {registrationFee === null ? (
+                <Skeleton className="inline-block h-4 w-16 align-middle mx-1" />
+              ) : (
+                <span className="text-orange-600 font-bold">{formatCurrency(registrationFee)}</span>
+              )}{" "}
+              in addition to their first month's payment.
+            </div>
           </div>
         </div>
       </section>
@@ -66,6 +82,9 @@ export default function PlansPage() {
       {/* Plans Grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
+          {plansLoading ? (
+            <PlansGridSkeleton />
+          ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {plans.map((plan, index) => (
               <Card
@@ -112,6 +131,7 @@ export default function PlansPage() {
               </Card>
             ))}
           </div>
+          )}
         </div>
       </section>
 

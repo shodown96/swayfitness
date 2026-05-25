@@ -9,7 +9,8 @@ import { API_ENDPOINTS } from "@/lib/constants/api"
 import { PATHS } from "@/lib/constants/paths"
 import { formatPrice } from "@/lib/plans"
 import { useAuthStore } from "@/lib/stores/authStore"
-import { daysUntilNextBilling } from "@/lib/utils"
+import { daysUntilNextBilling, getDaysSinceJoining, getEffectiveNextBillingDate } from "@/lib/utils"
+
 import { GetManageSubscriptionLinkResponse } from "@/types/responses"
 import { CheckCircle, ExternalLink, QrCode } from 'lucide-react'
 import { useRouter } from "next/navigation"
@@ -22,13 +23,6 @@ export default function DashboardPage() {
   const [manageLink, setManageLink] = useState("")
   const [isModalOpened, setIsModalOpened] = useState(false)
 
-
-  const getDaysSinceJoining = (joinDate: string | Date): number => {
-    const join = new Date(joinDate)
-    const today = new Date()
-    const diffTime = Math.abs(today.getTime() - join.getTime())
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  }
 
   const getLink = async () => {
     const result = await mainClient.get<GetManageSubscriptionLinkResponse>(API_ENDPOINTS.Transactions.GetManageSubscriptionLink)
@@ -45,19 +39,20 @@ export default function DashboardPage() {
   if (!user) return null
 
   const qrCodeUrl = `${window.location.origin}${PATHS.MemberInfo}?id=${user.id}`
+  console.log(qrCodeUrl)
 
   return (
     <div>
       {/* Welcome Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
           Welcome back, {user.name.split(' ')[0]}!
         </h1>
         <p className="text-gray-600">Here's your fitness journey overview</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-8">
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-2xl font-bold text-orange-500 mb-2">
@@ -69,9 +64,9 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-2xl font-bold text-orange-500 mb-2">
-              {user.subscription?.nextBillingDate ? daysUntilNextBilling(user.subscription?.nextBillingDate) : 'N/A'}
+              {(() => { const d = getEffectiveNextBillingDate(user.subscription); return d ? daysUntilNextBilling(d) : 'N/A' })()}
             </div>
-            <p className="text-gray-600">Current plan duration (days)</p>
+            <p className="text-gray-600">Days until next billing</p>
           </CardContent>
         </Card>
         <Card>
@@ -84,7 +79,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Membership Status Card */}
         <Card>
           <CardHeader>
@@ -107,7 +102,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Next billing date:</span>
-                <span className="font-medium">{user.subscription?.nextBillingDate ? new Date(user.subscription.nextBillingDate).toLocaleDateString() : 'N/A'}</span>
+                <span className="font-medium">{(() => { const d = getEffectiveNextBillingDate(user.subscription); return d ? d.toLocaleDateString() : 'N/A' })()}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Member since:</span>
@@ -147,31 +142,26 @@ export default function DashboardPage() {
             <CardTitle>Digital Membership Card</CardTitle>
           </CardHeader>
           <CardContent className="space-y-14">
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-lg">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold">{user.name}</h3>
-                  <p className="text-orange-100">{user.memberId}</p>
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 md:p-6 rounded-lg">
+              <div className="flex justify-between items-start mb-4 gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-lg md:text-xl font-bold truncate">{user.name}</h3>
+                  <p className="text-orange-100 text-sm">{user.memberId}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <p className="text-sm text-orange-100">SwayFitness</p>
                   <p className="text-xs text-orange-200">Member</p>
                 </div>
               </div>
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-sm text-orange-100">{user.subscription?.plan.name}</p>
+              <div className="flex justify-between items-end gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm text-orange-100 truncate">{user.subscription?.plan.name}</p>
                   <p className="text-xs text-orange-200">
                     Joined: {new Date(user.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="bg-white p-2 rounded">
-                  <QRCode
-                    id="qr-code"
-                    value={qrCodeUrl}
-                    size={60}
-                    level="M"
-                  />
+                <div className="bg-white p-1.5 rounded shrink-0">
+                  <QRCode id="qr-code" value={qrCodeUrl} size={56} level="M" />
                 </div>
               </div>
             </div>

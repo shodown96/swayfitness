@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
+  Settings,
   Shield,
   User,
   Users
@@ -44,6 +45,11 @@ const navigation = [
     href: PATHS.AdminPlans,
     icon: Calendar,
   },
+  {
+    name: "Settings",
+    href: PATHS.AdminSettings,
+    icon: Settings,
+  },
 ]
 
 const superadminNavigation = [
@@ -58,7 +64,6 @@ const superadminNavigation = [
     href: PATHS.AdminTransactions,
     icon: Receipt,
   },
-
 ]
 
 export default function AdminSidebar() {

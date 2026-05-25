@@ -1,7 +1,7 @@
 
-export const originURL = "https://swayfitness.vercel.app"
+export const originURL = process.env.NODE_ENV === 'development' ? "http://localhost:3000" : "https://swayfitness.vercel.app"
 
-export const SITE_URL = "https://thenextschool.vercel.app"
+export const SITE_URL = originURL
 
 export const DOMAIN = process.env.NODE_ENV === 'development' ?
     'localhost' : process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -24,24 +24,27 @@ export const publicRoutes = [
 ]
 
 export const PATHS = {
-  AdminPlans: "/admin/plans",
-  AdminAdmins: "/admin/admins",
-  AdminSubscriptions: "/admin/subscriptions",
-  AdminDashboard: "/admin/dashboard",
-  AdminTransactions: "/admin/transactions",
-  AdminProfile: "/admin/profile",
-  AdminMembers: "/admin/members",
-  AdminSignIn: "/admin/sign-in",
+    AdminPlans: "/admin/plans",
+    AdminAdmins: "/admin/admins",
+    AdminSubscriptions: "/admin/subscriptions",
+    AdminDashboard: "/admin/dashboard",
+    AdminTransactions: "/admin/transactions",
+    AdminProfile: "/admin/profile",
+    AdminMembers: "/admin/members",
+    AdminSettings: "/admin/settings",
+    AdminSignIn: "/admin/sign-in",
 
-  Contact: "/contact",
-  Join: "/join",
-  Plans: "/plans",
-  MemberInfo: "/member-info",
+    Verify: "/verify",
+    Contact: "/contact",
+    HowItWorks: "/how-it-works",
+    Join: "/join",
+    Plans: "/plans",
+    MemberInfo: "/member-info",
 
-  DashboardProfile: "/dashboard/profile",
-  DashboardBilling: "/dashboard/billing",
-  Dashboard: "/dashboard",
+    DashboardProfile: "/dashboard/profile",
+    DashboardBilling: "/dashboard/billing",
+    Dashboard: "/dashboard",
 
-  SignIn: "/sign-in",
-  Root: "/",
+    SignIn: "/sign-in",
+    Root: "/",
 } as const;

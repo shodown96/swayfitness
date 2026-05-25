@@ -2,10 +2,11 @@
 
 import { Input } from "@/components/custom/Input"
 import { Select } from "@/components/custom/Select"
+import AvatarUpload from "@/components/custom/AvatarUpload"
 import { Button } from "@/components/ui/button"
 import { ProfileUpdateParamsSchema, type ProfileUpdateParamsType } from "@/lib/validations"
 import { useFormik } from "formik"
-import { Calendar, Mail, MapPin, Phone, Save, User } from "lucide-react"
+import { Calendar, Loader2, Mail, MapPin, Phone, Save, User } from "lucide-react"
 
 interface ProfileUpdateFormProps {
   onFormSubmit: (values: ProfileUpdateParamsType) => void
@@ -28,6 +29,17 @@ export default function ProfileUpdateForm({ onFormSubmit, initialValues, isLoadi
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Avatar upload */}
+      <div className="flex items-center max-md:justify-center pb-2">
+        <AvatarUpload
+          value={values.avatarUrl ?? ""}
+          onChange={(url) => setFieldValue("avatarUrl", url)}
+          name={values.name}
+          size="md"
+          label="Click to change your profile photo"
+        />
+      </div>
+
       <div className="grid md:grid-cols-2 gap-4">
         <Input
           id="name"
@@ -163,10 +175,14 @@ export default function ProfileUpdateForm({ onFormSubmit, initialValues, isLoadi
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={!isValid || isLoading} className="bg-orange-500 hover:bg-orange-600 px-8">
+        <Button
+          type="submit"
+          disabled={!isValid || isLoading}
+          className="bg-orange-500 hover:bg-orange-600 px-8"
+        >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Saving...
             </>
           ) : (

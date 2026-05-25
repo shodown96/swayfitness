@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
@@ -23,7 +22,7 @@ model Account {
   dob      DateTime?
   gender   Gender?
   address  String?
-  avatar   String?
+  avatarUrl   String?
 
   // Role and permissions
   role        AccountRole   @default(member)
@@ -51,6 +50,7 @@ model Account {
   subscription Subscription?
   transactions Transaction[]
   notes        AccountNote[]
+  auditLogs    AuditLog[]
 
   @@map("accounts")
 }
@@ -182,6 +182,45 @@ model AccountNote {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("account_notes")
+}
+
+// ============================================================================
+// PENDING REGISTRATIONS
+// Temporary storage for new-member form data between checkout init and verify.
+// Deleted once the member's account is created on successful payment.
+// ============================================================================
+
+model PendingRegistration {
+  id           String   @id @default(cuid())
+  email        String
+  passwordHash String
+  planId       String
+  data         Json     // all other form fields (name, phone, dob, gender, etc.)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([email])
+  @@map("pending_registrations")
+}
+
+// ============================================================================
+// AUDIT LOGS (Admin action history)
+// ============================================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  action      String   // e.g. "refund_issued", "member_updated", "plan_created"
+  targetType  String   // "transaction" | "subscription" | "member" | "plan" | "admin" | "notification"
+  targetId    String?  // ID of the affected entity (null for bulk actions like notifications)
+  description String   // Human-readable summary
+  metadata    Json?    // Extra context: amounts, reasons, before/after values, etc.
+  createdAt   DateTime @default(now())
+
+  // Relations
+  admin Account @relation(fields: [adminId], references: [id])
+
+  @@map("audit_logs")
 }
 
 // ============================================================================

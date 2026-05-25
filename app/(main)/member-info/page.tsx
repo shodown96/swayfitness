@@ -7,60 +7,109 @@ import { mainClient } from "@/lib/axios"
 import { API_ENDPOINTS } from "@/lib/constants/api"
 import { FullAccount } from "@/types/account"
 import { GetMemberResponse } from "@/types/responses"
-import { Calendar, CheckCircle, Mail, User, XCircle } from 'lucide-react'
+import { getEffectiveNextBillingDate } from "@/lib/utils"
+import { Calendar, CheckCircle, Mail, ShieldAlert, User, XCircle } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
-// TODO: Move to Admins only
+type PageState = "loading" | "admin-only" | "not-found" | "error" | "ready"
+
 export default function MemberInfoPage() {
   const searchParams = useSearchParams()
   const [memberData, setMemberData] = useState<FullAccount | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [state, setState] = useState<PageState>("loading")
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
     const getMember = async () => {
-      const memberId = searchParams.get('id')
+      const memberId = searchParams.get("id")
       if (!memberId) {
-        setError("Invalid member ID")
-        setIsLoading(false)
+        setState("not-found")
         return
       }
-      const result = await mainClient.get<GetMemberResponse>(API_ENDPOINTS.Members.ById(memberId))
-      if (result.success && result.data) {
-        setMemberData(result.data.member)
-        setIsLoading(false)
+
+      try {
+        const result = await mainClient.get<GetMemberResponse>(API_ENDPOINTS.Members.ById(memberId))
+        if (result.success && result.data) {
+          setMemberData(result.data.member)
+          setState("ready")
+        } else {
+          setErrorMessage(result.message || "Something went wrong.")
+          setState("error")
+        }
+      } catch (err: unknown) {
+        const status = (err as { status?: number })?.status
+        if (status === 401) {
+          setState("admin-only")
+        } else if (status === 404) {
+          setState("not-found")
+        } else {
+          const msg = (err as { data?: { message?: string } })?.data?.message
+          setErrorMessage(msg || "Something went wrong.")
+          setState("error")
+        }
       }
     }
     getMember()
   }, [searchParams])
 
-  if (isLoading) {
+  if (state === "loading") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading member information...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4" />
+          <p className="text-gray-600">Loading member information…</p>
         </div>
       </div>
     )
   }
 
-  if (error || !memberData) {
+  if (state === "admin-only") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Member Not Found</h2>
-            <p className="text-gray-600">{error || "The requested member information could not be found."}</p>
+          <CardContent className="p-8 text-center space-y-4">
+            <ShieldAlert className="w-16 h-16 text-orange-500 mx-auto" />
+            <h2 className="text-xl font-bold text-slate-800">Staff Access Required</h2>
+            <p className="text-gray-600 text-sm">
+              This page is for authorised SwayFitness staff only. Please sign in with a staff account to verify member
+              details.
+            </p>
+            <a
+              href="/admin/sign-in"
+              className="inline-block mt-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            >
+              Staff Sign In
+            </a>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  const isActive = memberData.subscription?.status === 'active'
+  if (state === "not-found" || state === "error") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-slate-800 mb-2">
+              {state === "not-found" ? "Member Not Found" : "Something Went Wrong"}
+            </h2>
+            <p className="text-gray-600 text-sm">
+              {state === "not-found"
+                ? "The requested member information could not be found."
+                : errorMessage}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!memberData) return null
+
+  const isActive = memberData.subscription?.status === "active"
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -76,9 +125,9 @@ export default function MemberInfoPage() {
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <Avatar className="h-24 w-24">
-                <AvatarImage />
+                <AvatarImage src={memberData.avatarUrl ?? undefined} alt={memberData.name} />
                 <AvatarFallback className="bg-orange-500 text-white text-2xl">
-                  {memberData.name.split(' ').map(n => n[0]).join('')}
+                  {memberData.name.split(" ").map((n) => n[0]).join("")}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -112,11 +161,26 @@ export default function MemberInfoPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
-              <Mail className="w-5 h-5 text-gray-500" />
-              <div>
-                <p className="text-sm text-gray-600">Plan</p>
-                <p className="font-semibold">{memberData.subscription?.plan.name || 'N/A'}</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-gray-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Plan</p>
+                  <p className="font-semibold">{memberData.subscription?.plan.name || "N/A"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Calendar className="w-5 h-5 text-gray-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Next Billing Date</p>
+                  <p className="font-semibold">
+                    {(() => {
+                      const d = getEffectiveNextBillingDate(memberData.subscription)
+                      return d ? d.toLocaleDateString() : "N/A"
+                    })()}
+                  </p>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -126,7 +190,7 @@ export default function MemberInfoPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <CheckCircle className={`w-5 h-5 mr-2 ${isActive ? 'text-green-500' : 'text-red-500'}`} />
+              <CheckCircle className={`w-5 h-5 mr-2 ${isActive ? "text-green-500" : "text-red-500"}`} />
               Plan Access Includes
             </CardTitle>
           </CardHeader>
@@ -134,17 +198,15 @@ export default function MemberInfoPage() {
             <ul className="space-y-2">
               {memberData.subscription?.plan.features.map((access, index) => (
                 <li key={index} className="flex items-center">
-                  <CheckCircle className={`w-4 h-4 mr-3 ${isActive ? 'text-green-500' : 'text-gray-400'}`} />
-                  <span className={isActive ? 'text-gray-700' : 'text-gray-400'}>{access}</span>
+                  <CheckCircle className={`w-4 h-4 mr-3 ${isActive ? "text-green-500" : "text-gray-400"}`} />
+                  <span className={isActive ? "text-gray-700" : "text-gray-400"}>{access}</span>
                 </li>
               ))}
             </ul>
 
             {!isActive && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800 font-medium">
-                  ⚠️ Membership Expired - Access Restricted
-                </p>
+                <p className="text-red-800 font-medium">⚠️ Membership Expired — Access Restricted</p>
                 <p className="text-red-600 text-sm mt-1">
                   Please contact reception to renew your membership.
                 </p>
@@ -155,7 +217,7 @@ export default function MemberInfoPage() {
 
         {/* Staff Instructions */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>For staff use only - Verify member status before granting facility access</p>
+          <p>For staff use only — verify member status before granting facility access</p>
         </div>
       </div>
     </div>

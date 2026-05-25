@@ -120,11 +120,11 @@ export default function PlanSelectionForm({ formik, onPrev }: PlanSelectionFormP
         />
         <Label htmlFor="agreeToTerms" className="text-sm">
           I agree to the{" "}
-          <a href="/terms" className="text-orange-500 hover:underline">
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline">
             terms and conditions
           </a>{" "}
           and{" "}
-          <a href="/privacy" className="text-orange-500 hover:underline">
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline">
             privacy policy
           </a>
         </Label>

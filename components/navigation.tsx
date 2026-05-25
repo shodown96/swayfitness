@@ -27,16 +27,9 @@ export function Navigation() {
             <Link href={PATHS.Plans} className="text-gray-600 hover:text-slate-800 transition-colors">
               Plans
             </Link>
-            {/* <Link
-              href="/#trainers"
-              className="text-gray-600 hover:text-slate-800 transition-colors"
-              onClick={(e) => {
-                e.preventDefault()
-                document.querySelector("#trainers")?.scrollIntoView({ behavior: "smooth" })
-              }}
-            >
-              Trainers
-            </Link> */}
+            <Link href={PATHS.HowItWorks} className="text-gray-600 hover:text-slate-800 transition-colors">
+              How It Works
+            </Link>
             <Link href={PATHS.Contact} className="text-gray-600 hover:text-slate-800 transition-colors">
               Contact
             </Link>
@@ -83,19 +76,13 @@ export function Navigation() {
               >
                 Plans
               </Link>
-              {/* <Link
-                href="/#trainers"
+              <Link
+                href={PATHS.HowItWorks}
                 className="text-gray-600 hover:text-slate-800 transition-colors"
-                onClick={(e) => {
-                  e.preventDefault()
-                  setIsOpen(false)
-                  setTimeout(() => {
-                    document.querySelector("#trainers")?.scrollIntoView({ behavior: "smooth" })
-                  }, 100)
-                }}
+                onClick={() => setIsOpen(false)}
               >
-                Trainers
-              </Link> */}
+                How It Works
+              </Link>
               <Link
                 href={PATHS.Contact}
                 className="text-gray-600 hover:text-slate-800 transition-colors"

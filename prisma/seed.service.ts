@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma';
 import PaystackService from '@/lib/services/paystack.service';
 import { faker } from '@faker-js/faker';
 import {
@@ -22,7 +23,7 @@ export const hashPassword = async (password: string) => {
 }
 
 export class SeedingService {
-    private static prisma = new PrismaClient();
+    private static prisma = prisma;
 
     // ============================================================================
     // ACCOUNT SEEDING
@@ -108,9 +109,19 @@ export class SeedingService {
     }) {
         const hashedPassword = await hashPassword(data.password);
 
-        return await SeedingService.prisma.account.create({
-            data: {
+        return await SeedingService.prisma.account.upsert({
+            where: { email: data.email },
+            create: {
                 email: data.email,
+                password: hashedPassword,
+                name: data.name,
+                phone: data.phone,
+                role: AccountRole.superadmin,
+                status: AccountStatus.active,
+                permissions: ['*'], // All permissions
+                lastLogin: new Date(),
+            },
+            update: {
                 password: hashedPassword,
                 name: data.name,
                 phone: data.phone,
@@ -513,11 +524,16 @@ export class SeedingService {
         // Create registration transaction
         const plan = await SeedingService.prisma.plan.findUnique({ where: { id: memberData.planId } });
         if (plan) {
+            // Fetch registration fee from the settings table so seeded data stays consistent
+            const feeSetting = await SeedingService.prisma.setting.findUnique({
+                where: { key: "registration_fee" },
+            });
+            const registrationFee = feeSetting ? Number(feeSetting.value) : 0;
             await SeedingService.seedRegistrationTransaction({
                 accountId: member.id,
                 subscriptionId: subscription.id,
                 planAmount: Number(plan.amount),
-                registrationFee: Number(process.env.NEXT_PUBLIC_REGISTRATION_FEE),
+                registrationFee,
             });
         }
 

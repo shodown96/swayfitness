@@ -5,6 +5,7 @@ import { User, Mail, Phone, Calendar } from "lucide-react"
 import { Input } from "@/components/custom/Input"
 import { InputPassword } from "@/components/custom/InputPassword"
 import { Select } from "@/components/custom/Select"
+import AvatarUpload from "@/components/custom/AvatarUpload"
 import type { MemberRegistrationParamsType } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -45,6 +46,14 @@ export default function PersonalInfoForm({ formik, onNext }: PersonalInfoFormPro
         <h2 className="text-2xl font-bold text-slate-800">Personal Information</h2>
         <p className="text-gray-600 mt-2">Tell us about yourself</p>
       </div>
+
+      {/* Avatar upload */}
+      <AvatarUpload
+        value={values.avatarUrl ?? ""}
+        onChange={(url) => setFieldValue("avatarUrl", url)}
+        name={values.name}
+        size="lg"
+      />
 
       <div className="grid md:grid-cols-2 gap-4">
         <Input

@@ -1,6 +1,7 @@
 import type { AxiosInstance, RawAxiosRequestHeaders, AxiosResponse, AxiosRequestConfig } from "axios";
 import axios from "axios";
 import { BASE_API_ENDPOINT } from "@/lib/constants/api";
+import { APP_CLIENT_HEADER, APP_CLIENT_VALUE } from "@/lib/constants/app";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -24,6 +25,9 @@ class AxiosClient {
       withCredentials: true,
       headers: {
         "Content-Type": multipart ? "multipart/form-data" : "application/json",
+        // Identifies every request as coming from this app's frontend.
+        // Checked by Next.js middleware — external callers without this header are rejected.
+        [APP_CLIENT_HEADER]: APP_CLIENT_VALUE,
         ...extraHeaders,
       },
     });

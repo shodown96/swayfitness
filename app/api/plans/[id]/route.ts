@@ -3,6 +3,7 @@ import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
 import PaystackService from "@/lib/services/paystack.service"
+import { AuditService } from "@/lib/services/audit.service"
 import { APIRouteIDParams } from "@/types/common"
 import { type NextRequest } from "next/server"
 
@@ -103,6 +104,15 @@ export async function PUT(
       },
     })
 
+    await AuditService.log({
+      adminId: user!.id,
+      action: "plan_updated",
+      targetType: "plan",
+      targetId: updatedPlan.id,
+      description: `Plan "${updatedPlan.name}" updated`,
+      metadata: { name, description, amount, interval, status },
+    })
+
     return constructResponse({
       statusCode: 200,
       data: updatedPlan,
@@ -153,6 +163,14 @@ export async function DELETE(
   await PaystackService.deletePlan(plan.apiId)
   await prisma.plan.delete({ where: { id: plan.id } })
 
+  await AuditService.log({
+    adminId: user!.id,
+    action: "plan_deleted",
+    targetType: "plan",
+    targetId: plan.id,
+    description: `Plan "${plan.name}" (₦${plan.amount.toLocaleString()}) permanently deleted`,
+    metadata: { name: plan.name, amount: plan.amount, interval: plan.interval },
+  })
 
   return constructResponse({
     statusCode: 200,

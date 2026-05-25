@@ -11,10 +11,6 @@ export interface Plan {
   features: string[]
 }
 
-
-
-export const REGISTRATION_FEE = Number(process.env.NEXT_PUBLIC_REGISTRATION_FEE)
-
 export function formatPrice(amount: number): string {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',

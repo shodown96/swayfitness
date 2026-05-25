@@ -35,14 +35,9 @@ export function isToday(dateString: string): boolean {
 }
 
 export function daysUntilNextBilling(nextBillingDate: string | Date): number {
-  // const targetDate = typeof nextBillingDate === "string" ? parseISO(nextBillingDate) : nextBillingDate
-  // const today = new Date()
-  // return differenceInCalendarDays(targetDate, today)
   const target = new Date(nextBillingDate)
-  console.log(target)
   const today = new Date()
 
-  // Normalize both dates to midnight (ignore time)
   target.setHours(0, 0, 0, 0)
   today.setHours(0, 0, 0, 0)
 
@@ -50,6 +45,39 @@ export function daysUntilNextBilling(nextBillingDate: string | Date): number {
   const diffInMs = target.getTime() - today.getTime()
   const diffInDays = Math.floor(diffInMs / msPerDay)
   return Math.abs(diffInDays)
+}
+
+export function getDaysSinceJoining(joinDate: string | Date): number {
+  const join = new Date(joinDate)
+  const today = new Date()
+  const diffTime = Math.abs(today.getTime() - join.getTime())
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+}
+
+// Returns the effective next billing date for a subscription.
+// Uses nextBillingDate if available, otherwise estimates from startDate + plan interval.
+export function getEffectiveNextBillingDate(
+  subscription: {
+    nextBillingDate?: Date | string | null
+    startDate: Date | string
+    plan: { interval: string }
+  } | null | undefined
+): Date | null {
+  if (!subscription?.startDate) return null
+  if (subscription.nextBillingDate) return new Date(subscription.nextBillingDate)
+
+  const next = new Date(subscription.startDate)
+  switch (subscription.plan.interval) {
+    case "monthly":    next.setMonth(next.getMonth() + 1); break
+    case "annually":   next.setFullYear(next.getFullYear() + 1); break
+    case "weekly":     next.setDate(next.getDate() + 7); break
+    case "daily":      next.setDate(next.getDate() + 1); break
+    case "quarterly":  next.setMonth(next.getMonth() + 3); break
+    case "biannually": next.setMonth(next.getMonth() + 6); break
+    case "hourly":     next.setHours(next.getHours() + 1); break
+    default: return null
+  }
+  return next
 }
 
 export const delayDebounceFn = (callBack: () => void) =>
@@ -71,4 +99,32 @@ export const getStatusColor = (status: string): string => {
     default:
       return 'bg-gray-100 text-gray-800'
   }
+}
+
+export const formatDateTimeForInput = (date: string | Date | null | undefined): string => {
+  if (!date) return ""
+
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ""
+
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  const hours = String(d.getHours()).padStart(2, "0")
+  const minutes = String(d.getMinutes()).padStart(2, "0")
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+export const formatDateForInput = (date: string | Date | null | undefined): string => {
+  if (!date) return ""
+
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ""
+
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
 }

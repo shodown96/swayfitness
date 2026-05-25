@@ -5,6 +5,7 @@ import { ERROR_MESSAGES } from "@/lib/constants/messages"
 import { APIRouteIDParams } from "@/types/common"
 import { checkAuth } from "@/actions/auth/check-auth"
 import PaystackService from "@/lib/services/paystack.service"
+import { AuditService } from "@/lib/services/audit.service"
 
 export async function POST(
   request: NextRequest,
@@ -12,17 +13,18 @@ export async function POST(
 ) {
   try {
     const { user } = await checkAuth(true)
-    const { refundReason, amount } = await request.json()
-    if (user?.role !== 'superadmin') {
+
+    if (user?.role !== "superadmin") {
       return constructResponse({
         statusCode: 401,
         message: "Only super admins have access to this resource",
       })
     }
-    const body = await request.json()
-    const { reason } = body
 
-    if (!reason) {
+    // Parse body once — previously called request.json() twice which empties the stream
+    const { refundReason, amount } = await request.json()
+
+    if (!refundReason) {
       return constructResponse({
         statusCode: 400,
         message: ERROR_MESSAGES.BadRequestError,
@@ -54,41 +56,70 @@ export async function POST(
       })
     }
 
-    const result = await PaystackService.createRefund(transaction.reference, amount, refundReason)
+    // amount is optional — if omitted Paystack refunds the full transaction amount.
+    // The service layer converts naira → kobo if an amount is provided.
+    const result = await PaystackService.createRefund(
+      transaction.reference,
+      amount ?? undefined,
+      refundReason
+    )
 
-    if (result.status) {
-      const updatedTransaction = await prisma.transaction.update({
+    if (!result.status) {
+      return constructResponse({
+        statusCode: 500,
+        message: ERROR_MESSAGES.InternalServerError,
+      })
+    }
+
+    // Paystack refund id stored so we can poll /refund/:id for status changes later
+    const refundedAmount = amount ?? Number(transaction.amount)
+
+    const [updatedTransaction, refundTransaction] = await prisma.$transaction([
+      prisma.transaction.update({
         where: { id: transaction.id },
         data: {
           status: "refunded",
-          description: `${transaction.description} (Refunded: ${reason})`,
+          refundReason,
+          refundDate: new Date(),
+          refundApiId: String(result.data.id),
+          description: `${transaction.description} (Refunded: ${refundReason})`,
         },
-      })
-
-      const refundTransaction = await prisma.transaction.create({
+      }),
+      prisma.transaction.create({
         data: {
           accountId: transaction.accountId,
-          amount: transaction.amount,
+          subscriptionId: transaction.subscriptionId ?? undefined,
+          amount: refundedAmount,
+          totalAmount: refundedAmount,
           status: "success",
           type: "refund",
+          // Paystack refund reference sits inside result.data.transaction.reference;
+          // prefix with REF_ to make it unique in our table if that reference already exists.
           reference: `REF_${transaction.reference}`,
-          description: `Refund for ${transaction.reference}`,
+          description: `Refund for ${transaction.reference}: ${refundReason}`,
         },
-      })
-      return constructResponse({
-        statusCode: 200,
-        message: "Transaction refunded successfully",
-        data: {
-          originalTransaction: updatedTransaction,
-          refundTransaction,
-        },
-      })
-    }
+      }),
+    ])
+
+    await AuditService.log({
+      adminId: user!.id,
+      action: "refund_issued",
+      targetType: "transaction",
+      targetId: transaction.id,
+      description: `Refund of ${refundedAmount > 0 ? `₦${refundedAmount.toLocaleString()}` : "full amount"} issued for transaction ${transaction.reference}`,
+      metadata: { refundReason, amount: refundedAmount, reference: transaction.reference },
+    })
+
     return constructResponse({
-      statusCode: 500,
-      message: ERROR_MESSAGES.InternalServerError,
+      statusCode: 200,
+      message: "Refund initiated successfully",
+      data: {
+        originalTransaction: updatedTransaction,
+        refundTransaction,
+      },
     })
   } catch (error) {
+    console.error("[refund]", error)
     return constructResponse({
       statusCode: 500,
       message: ERROR_MESSAGES.InternalServerError,

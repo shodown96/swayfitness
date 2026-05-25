@@ -15,6 +15,5 @@ declare namespace NodeJS {
         GOOD_PASSWORD: string;
         PAYSTACK_SECRET_KEY: string;
         NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: string;
-        NEXT_PUBLIC_REGISTRATION_FEE: string;
     }
 }

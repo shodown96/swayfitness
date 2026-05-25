@@ -5,96 +5,135 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { mainClient } from "@/lib/axios"
 import { API_ENDPOINTS } from "@/lib/constants/api"
-import { ERROR_MESSAGES } from "@/lib/constants/messages"
-import { PATHS } from "@/lib/constants/paths"
-import { formatPrice, getNextPaymentDate, REGISTRATION_FEE } from "@/lib/plans"
+import { formatPrice, getNextPaymentDate } from "@/lib/plans"
 import { PlansService } from "@/lib/services/plans.service"
-import { useAuthStore } from "@/lib/stores/authStore"
+import { SettingsService } from "@/lib/services/settings.service"
 import { usePlanStore } from "@/lib/stores/planStore"
 import type { MemberRegistrationParamsType } from "@/lib/validations"
-import { SignInResponse } from "@/types/responses"
-import Paystack from '@paystack/inline-js'
-import { isToday } from "date-fns"
 import { Check } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export default function JoinPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const { setUser } = useAuthStore()
+  const [registrationFee, setRegistrationFee] = useState(0)
+  const [plansLoading, setPlansLoading] = useState(true)
+  const [feeLoading, setFeeLoading] = useState(true)
   const { plans, setPlans, setSelectedPlan, selectedPlan } = usePlanStore()
 
   useEffect(() => {
-    const getplans = async () => {
-      const result = await PlansService.getAll()
-      if (result.success && result.data) {
-        setPlans(result.data.items)
+    const getPlans = async () => {
+      try {
+        const result = await PlansService.getAll()
+        if (result.success && result.data) {
+          setPlans(result.data.items)
+        }
+      } finally {
+        setPlansLoading(false)
       }
     }
-    if (!plans.length) {
-      getplans()
-    }
-  }, [plans.length])
+    getPlans()
+  }, [])
+
+  // Fetch the registration fee from the DB-backed settings API
+  useEffect(() => {
+    SettingsService.getRegistrationFee().then((fee) => {
+      setRegistrationFee(fee)
+      setFeeLoading(false)
+    })
+  }, [])
+
+  const isPageLoading = plansLoading || feeLoading
 
   const handleSubmit = async (values: MemberRegistrationParamsType) => {
+    if (!selectedPlan) {
+      toast.error("Please select a plan before continuing.")
+      return
+    }
     try {
-      setLoading(true)
-      console.log(values)
-      const popup = new Paystack()
-      await popup.checkout({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-        email: values.email,
-        amount: Number(process.env.NEXT_PUBLIC_REGISTRATION_FEE),
-        planCode: String(selectedPlan?.code),
-        subscriptionStartDate: isToday(new Date(values.startDate)) ? undefined : values.startDate,
-        onSuccess: async (transaction) => {
-          console.log(transaction);
-          const toastId = toast.loading("Verifying transaction")
-          const result = await mainClient.post<SignInResponse>(API_ENDPOINTS.Transactions.VerifyPaystackTransaction, {
-            reference: transaction.reference,
-            registrationData: values
-          })
-          toast.dismiss(toastId)
-          if (result.success && result.data) {
-            toast.success("Successful", { duration: 10000 })
-            setUser(result.data.user)
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            router.push(PATHS.Dashboard)
-          } else {
-            toast.error(ERROR_MESSAGES.UnexpectedError)
-          }
-          setLoading(false)
-        },
-        onLoad: (response) => {
-          // console.log("onLoad: ", response);
-        },
-        onCancel: () => {
-          console.log("onCancel");
-          setLoading(false)
-        },
-        onError: (error) => {
-          toast.error(error.message)
-          // /Failed to subscribe. Please try again.
-          console.log("Error: ", error.message);
-          setLoading(false)
-        }
+      const res = await mainClient.post<{ url: string }>(API_ENDPOINTS.Checkout.Initialize, {
+        planId: selectedPlan.id,
+        registrationData: values,
       })
-
-      console.log(values)
-      // Redirect to dashboard
-      // router.push(PATHS.Dashboard)
-    } catch (error) {
-      alert("Registration failed. Please try again.")
-    } finally {
-      setLoading(false)
+      if (res.success && res.data?.url) {
+        // Redirect to Paystack's hosted checkout — amount is computed server-side
+        window.location.href = res.data.url
+      } else {
+        toast.error(res.message || "Failed to start payment. Please try again.")
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.")
     }
   }
 
-  const totalToday = selectedPlan ? selectedPlan.amount + REGISTRATION_FEE : REGISTRATION_FEE
+  const totalToday = selectedPlan ? selectedPlan.amount + registrationFee : registrationFee
 
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-6">
+        {/* Brand mark */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-7 h-7"
+            >
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+              <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+              <line x1="6" y1="1" x2="6" y2="4" />
+              <line x1="10" y1="1" x2="10" y2="4" />
+              <line x1="14" y1="1" x2="14" y2="4" />
+            </svg>
+          </div>
+          <p className="text-xl font-bold text-slate-800">SwayFitness</p>
+        </div>
+
+        {/* Spinner */}
+        <div className="flex items-center gap-3 text-gray-500">
+          <svg
+            className="animate-spin h-5 w-5 text-orange-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span className="text-sm font-medium">Loading membership plans…</span>
+        </div>
+
+        {/* Skeleton plan cards preview */}
+        <div className="w-full max-w-5xl px-4 mt-2">
+          <div className="grid md:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border p-6 animate-pulse space-y-4">
+                <div className="h-5 bg-gray-200 rounded w-1/2 mx-auto" />
+                <div className="h-9 bg-gray-200 rounded w-1/3 mx-auto" />
+                <div className="space-y-2 pt-2">
+                  {Array.from({ length: 4 }).map((_, j) => (
+                    <div key={j} className="flex gap-2 items-center">
+                      <div className="h-4 w-4 bg-gray-200 rounded-full shrink-0" />
+                      <div className="h-3 bg-gray-200 rounded flex-1" />
+                    </div>
+                  ))}
+                </div>
+                <div className="h-10 bg-gray-200 rounded mt-4" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,7 +153,7 @@ export default function JoinPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-8">
-                <MemberRegistrationForm onFormSubmit={handleSubmit} preSelectedPlan={selectedPlan?.id} loading={loading}/>
+                <MemberRegistrationForm onFormSubmit={handleSubmit} preSelectedPlan={selectedPlan?.id} />
               </CardContent>
             </Card>
 
@@ -171,7 +210,7 @@ export default function JoinPage() {
                     <ul className="space-y-2 text-sm">
                       {selectedPlan.features.slice(0, 4).map((feature, index) => (
                         <li key={index} className="flex items-center">
-                          <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                          <Check className="w-4 h-4 text-green-500 mr-2 shrink-0" />
                           {feature}
                         </li>
                       ))}
@@ -196,7 +235,7 @@ export default function JoinPage() {
                   <div className="flex justify-between items-center">
                     <span>Registration Fee:</span>
                     <div className="text-right">
-                      <span className="font-semibold">{formatPrice(REGISTRATION_FEE)}</span>
+                      <span className="font-semibold">{formatPrice(registrationFee)}</span>
                       <p className="text-xs text-gray-500">(one-time)</p>
                     </div>
                   </div>

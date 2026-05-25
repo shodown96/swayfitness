@@ -7,6 +7,7 @@ import { originURL } from "@/lib/constants/paths"
 import { prisma } from "@/lib/prisma"
 import { constructResponse } from "@/lib/response"
 import { EmailService } from "@/lib/services/email.service"
+import { AuditService } from "@/lib/services/audit.service"
 import { NextRequest } from "next/server"
 
 export async function POST(request: NextRequest) {
@@ -69,6 +70,15 @@ export async function POST(request: NextRequest) {
         password: account.password,
         url: `${originURL}/admin/sign-in`
       }
+    })
+
+    await AuditService.log({
+      adminId: user!.id,
+      action: "admin_invited",
+      targetType: "admin",
+      targetId: account.id,
+      description: `${role} account created for ${account.name} (${account.email})`,
+      metadata: { role, email: account.email, name: account.name },
     })
 
     return constructResponse({

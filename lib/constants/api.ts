@@ -1,6 +1,9 @@
 export const BASE_API_ENDPOINT = "/api"
 
 export const API_ENDPOINTS = {
+  Checkout: {
+    Initialize: "/api/checkout/initialize",
+  },
   Plans: {
     Base: "/api/plans",
     AdminPlans: "/api/plans/admin",
@@ -19,6 +22,7 @@ export const API_ENDPOINTS = {
     Invite: "/api/admins/invite",
     Me: "/api/admins/me",
     Stats: "/api/admins/stats",
+    AuditLogs: "/api/admins/audit-logs",
     ById: (id: string) => `/api/admins/${id}`,
   },
   Accounts: {
@@ -52,5 +56,13 @@ export const API_ENDPOINTS = {
     Dashboard: "/api/analytics/dashboard",
     Plans: "/api/analytics/plans",
   },
-  Contact:"/api/contact"
+  Upload: {
+    Presign: "/api/upload/presign",
+  },
+  Contact: "/api/contact",
+  Settings: {
+    Base: "/api/settings",
+    Admin: "/api/settings/admin",
+    ByKey: (key: string) => `/api/settings?key=${key}`,
+  },
 } as const;
